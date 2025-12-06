@@ -1,0 +1,33 @@
+{
+  "created_at": "2025-11-22T14:51:58.593997",
+  "total_papers": 19523,
+  "years": [
+    2018,
+    2019,
+    2020,
+    2021,
+    2022,
+    2023
+  ],
+  "year_distribution": {
+    "2018": 2681,
+    "2019": 2981,
+    "2020": 3281,
+    "2021": 3679,
+    "2022": 4103,
+    "2023": 2798
+  },
+  "statistics": {
+    "mean_citations": 9.472314705731701,
+    "median_citations": 3.0,
+    "max_citations": 1356,
+    "mean_abstract_length": 1410.7883009783332,
+    "mean_authors": 68.73841110485068,
+    "mean_references": 15.236746401680069
+  },
+  "completeness": {
+    "papers_with_doi": 18436,
+    "papers_with_authors": 19523,
+    "papers_with_references": 9585
+  }
+}
