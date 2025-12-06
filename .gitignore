@@ -17,8 +17,6 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
 parts/
 sdist/
 var/
@@ -32,12 +30,16 @@ venv/
 ENV/
 env/
 .venv
+lib/
+lib64/
 
 # Jupyter Notebook
 .ipynb_checkpoints
 *.ipynb_checkpoints/
 
 # Data files (large)
+data/
+!data/.gitkeep
 data/processed/*.csv
 data/processed/*.parquet
 data/features/*.npy
@@ -47,6 +49,20 @@ data/models/*.pt
 data/models/vector_db/
 
 
+
+# Node modules (frontend/backend)
+node_modules/
+**/node_modules/
+package-lock.json
+yarn.lock
+.pnp
+.pnp.js
+
+# Next.js build output
+.next/
+out/
+build/
+dist/
 
 # Environment variables
 .env

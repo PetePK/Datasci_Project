@@ -1,1327 +1,1312 @@
-# 📚 Complete Project Guide - Literature Review Assistant
+# AI Literature Review Assistant - Complete Technical Guide
 
-**This document contains EVERYTHING about the project. Read this to understand every detail.**
-
----
-
-## 📋 TABLE OF CONTENTS
-
-1. [Quick Summary](#quick-summary)
-2. [What We're Building](#what-were-building)
-3. [Complete Pipeline](#complete-pipeline)
-4. [Tech Stack Decisions](#tech-stack-decisions)
-5. [Implementation Details](#implementation-details)
-6. [Deployment Guide](#deployment-guide)
-7. [Timeline](#timeline)
+**Search 19,523 research papers with semantic search, AI analysis, and interactive visualization**
 
 ---
 
-## 🎯 QUICK SUMMARY
+## Table of Contents
 
-### Project Goal
-Build an AI-powered literature review assistant that searches 20,000 research papers and visualizes results as an interactive graph.
-
-### Key Features
-1. **Semantic Search** - Search by meaning, not keywords
-2. **Interactive Graph** - Papers as nodes (size = citations), edges = citations/stance
-3. **Relevance Scoring** - Color gradient (red = very relevant → blue = less)
-4. **Stance Detection** - Does paper support/contradict your hypothesis?
-5. **AI Summaries** - Context-aware summaries for your specific query
-6. **Report Generation** - Combine multiple papers into one document
-
-### Timeline
-**1 week** (30-35 hours total)
-
-### Cost
-**$0-2** (free with Ollama, or $2 with OpenAI for better quality)
-
-### Users
-**5 testers** (prototype/demo)
+1. [Project Overview](#project-overview)
+2. [Technical Stack](#technical-stack)
+3. [Pipeline Architecture](#pipeline-architecture)
+4. [Part 1: Data Preparation](#part-1-data-preparation)
+5. [Part 2: Embeddings & Vector Search](#part-2-embeddings--vector-search)
+6. [Part 3: Stance Detection & Network Analysis](#part-3-stance-detection--network-analysis)
+7. [Part 4: Interactive Dashboard](#part-4-interactive-dashboard)
+8. [Data Files Reference](#data-files-reference)
+9. [Performance Optimizations](#performance-optimizations)
+10. [Deployment Guide](#deployment-guide)
 
 ---
 
-## 🔬 WHAT WE'RE BUILDING
+## Project Overview
 
 ### The Problem
-**Literature review is painful:**
-- Takes 10+ hours to read papers manually
-- Hard to find relevant papers (keyword search misses synonyms)
-- Can't see connections between papers
-- Don't know which papers support/contradict your hypothesis
+
+Literature review is time-consuming and challenging:
+- **10+ hours** to manually read and analyze papers
+- **Keyword search** misses synonyms and related concepts
+- **No visualization** of research landscape and paper relationships
+- **Difficult** to identify which papers support or contradict a hypothesis
 
 ### Our Solution
-**AI-powered search + visualization:**
 
-```
-User enters: "Does machine learning improve medical diagnosis?"
-                           ↓
-System finds 50 relevant papers in 3 seconds
-                           ↓
-Shows interactive graph:
-  - Bigger nodes = more cited papers
-  - Red nodes = very relevant to query
-  - Green edges = paper supports your idea
-  - Red edges = paper contradicts
-                           ↓
-User clicks paper → Get AI summary in context of their query
-                           ↓
-User selects 10 papers → Generate combined literature review report
-```
+AI-powered research assistant with three core capabilities:
+
+**1. Semantic Search**
+- Search 19,523 papers by meaning, not just keywords
+- Vector-based search using sentence transformers
+- Returns results in <1 second
+
+**2. AI Analysis (Claude 3.5 Haiku)**
+- Automatic one-sentence summaries for each paper
+- Stance detection: SUPPORT ✓ / CONTRADICT ✗ / NEUTRAL ○
+- Analyzes 20 papers in 10-12 seconds
+
+**3. Interactive Visualization**
+- Tree map showing research landscape across 7 subject categories
+- Timeline analysis with publication trends
+- Color-coded subject tags and stance badges
+- Export results to CSV
 
 ### Real Impact
-- Saves researchers 10+ hours per project
-- Helps find contradicting evidence (important for research)
-- Visualizes research landscape
-- Actually useful (not just academic exercise)
+
+- Saves researchers **10+ hours** per project
+- Visualizes **research landscape** across subject areas
+- Identifies **contradicting evidence** (critical for research quality)
+- Explores **19,523 papers** across 6 years (2018-2023)
 
 ---
 
-## 🗺️ COMPLETE PIPELINE
+## Technical Stack
 
-### Overview
+### Backend
+- **Python 3.9+**: Core language
+- **Pandas**: Data processing (19K papers in 0.65 seconds)
+- **NumPy**: Numerical operations and vector math
+- **NetworkX**: Network analysis and community detection
 
-```
-RAW DATA (JSON) → PARSE → CLEAN → EMBEDDINGS → VECTOR DB → SEARCH → ANALYZE → VISUALIZE
-```
+### AI/ML Models
 
-### Phase-by-Phase Breakdown
-
----
-
-### **PHASE 1: Data Inspection & Understanding** (4 hours)
-
-**What**: Understand what data we have
-
-**Input**: 20,216 JSON files (2018-2023)
-
-**Process**:
-1. Sample random files from each year
-2. Inspect structure (what fields exist?)
-3. Check data quality (missing values? errors?)
-4. Calculate statistics (papers per year, citation distribution)
-
-**Output**:
-- Understanding of data structure
-- Statistics report
-- List of issues to fix
-
-**Tools**: Python, pandas, json
-
-**Code Location**: Already done (see archive folder)
-
----
-
-### **PHASE 2: Data Cleaning & Preparation** (6 hours)
-
-**What**: Parse all JSON files into clean, structured format
-
-#### **Decision Point: Output Format**
-
-| Option | Pros | Cons | Choice |
-|--------|------|------|--------|
-| **CSV** | Simple, easy to inspect, works in Excel | Takes disk space (~500MB) | ✅ CHOSEN |
-| SQLite DB | Better for queries, normalized | More complex, overkill for 20K | ❌ |
-| Keep JSON | No preprocessing | Very slow for searches | ❌ |
-
-**Why CSV?** Simple, fast, easy to debug. Perfect for prototype.
-
-#### **Implementation**
-
-**Input**:
-```
-raw_data/
-  2018/201800001  (JSON file)
-  2018/201800002  (JSON file)
-  ...
-```
-
-**Process**:
-```python
-# src/data/parser.py
-
-For each JSON file:
-  1. Read file
-  2. Extract: title, abstract, authors, year, citations, references
-  3. Handle missing data:
-     - No abstract? Skip paper (can't search without text)
-     - No citations? Set to 0
-     - Missing year? Try to infer or skip
-  4. Normalize:
-     - Convert year to integer
-     - Remove special characters in text
-     - Deduplicate (same paper might appear twice)
-```
-
-**Output**:
-```
-data/processed/papers.csv
-
-Columns:
-- id: Unique identifier
-- title: Paper title
-- abstract: Full abstract text
-- year: Publication year (2018-2023)
-- citation_count: Number of times cited
-- authors: Semicolon-separated author names
-- affiliations: Semicolon-separated institutions
-- references: Semicolon-separated reference IDs
-```
-
-**Data Cleaning Rules**:
-- Remove papers without abstracts (can't search)
-- Remove duplicates (same DOI/title)
-- Remove papers with year < 2018 or > 2023
-- Final count: ~19,000 papers (from 20,216)
-
-**Tools**: pandas, json, tqdm (progress bar)
-
-**Time**: ~20 minutes to parse all files
-
----
-
-### **PHASE 3: Embedding Creation** (3 hours)
-
-**What**: Convert text to numerical vectors (embeddings)
-
-#### **Why Embeddings?**
-
-**Problem with keyword search:**
-```
-Query: "AI helps doctors"
-Keyword search finds: Papers with words "AI", "helps", "doctors"
-Misses: "Machine learning improves diagnosis" (same meaning, different words!)
-```
-
-**Solution with embeddings:**
-```
-"AI helps doctors" → [0.23, -0.41, 0.88, ..., 0.56] (384 numbers)
-"ML improves diagnosis" → [0.25, -0.38, 0.85, ..., 0.54] (very similar numbers!)
-
-Search = find papers with similar numbers (cosine similarity)
-```
-
-#### **Decision Point: Embedding Model**
-
-| Model | Dimensions | Speed | Quality | Cost | Choice |
-|-------|-----------|-------|---------|------|--------|
-| **all-MiniLM-L6-v2** | 384 | Fast (2 min) | Good | Free | ✅ CHOSEN |
-| all-mpnet-base-v2 | 768 | Medium (5 min) | Better | Free | ❌ |
-| OpenAI text-embedding-3-small | 1536 | Fast | Best | $2 for 20K | ❌ |
-
-**Why all-MiniLM-L6-v2?**
+**1. Text Embeddings: sentence-transformers (all-MiniLM-L6-v2)**
+- Converts text → 384-dimensional vectors
 - Free, runs locally
-- Fast enough (2 minutes for 20K papers)
-- Good quality (fine for prototype)
-- Can upgrade later if needed
+- 2-5 minutes to embed 19K papers
+- Used for semantic search
 
-#### **Implementation**
+**2. Vector Database: ChromaDB**
+- Fast similarity search with HNSW algorithm
+- PersistentClient (saves to disk, no server needed)
+- <0.1 second per query
+
+**3. AI Analysis: Claude 3.5 Haiku (Anthropic)**
+- One-sentence paper summaries
+- Stance detection (support/contradict/neutral)
+- Fast: 10-12 seconds for 20 papers
+- Cost: ~$0.01-0.02 per search
+
+### Frontend
+- **Streamlit**: Interactive web dashboard framework
+- **Plotly**: Tree map and chart visualizations
+- **Custom CSS**: Modern UI with color-coded elements
+
+### Data Format
+- **Parquet**: Main format (50% smaller, 5-10x faster than CSV)
+- **JSON**: Configuration and cache files
+- **NumPy arrays**: Vector embeddings
+
+### Cost
+- **Embedding generation**: $0 (free local model)
+- **Vector search**: $0 (free local database)
+- **AI analysis**: ~$0.01-0.02 per 20 papers (Claude API)
+- **Total for testing**: ~$1-2
+
+---
+
+## Pipeline Architecture
+
+### Complete Flow
+
+```
+RAW JSON FILES (20,216)
+    ↓
+PARSE & CLEAN
+    ↓
+STRUCTURED DATA (19,523 papers)
+    ↓
+GENERATE EMBEDDINGS (384-dim vectors)
+    ↓
+BUILD VECTOR DATABASE (ChromaDB)
+    ↓
+SEMANTIC SEARCH (user query)
+    ↓
+AI ANALYSIS (summaries + stance)
+    ↓
+INTERACTIVE DASHBOARD (visualize results)
+```
+
+### Four-Part Pipeline
+
+**Part 1: Data Preparation** (4-5 hours)
+- Parse 20,216 JSON files from Scopus API
+- Clean and validate data
+- Extract subject areas and create hierarchy
+- Generate tree map data (pre-computed)
+- Output: `papers.parquet` (19,523 papers)
+
+**Part 2: Embeddings & Vector Search** (3-4 hours)
+- Generate 384-dim embeddings for all papers
+- Build ChromaDB vector database
+- Implement semantic search
+- Output: `paper_embeddings.npy` + ChromaDB files
+
+**Part 3: Stance Detection & Network** (4-5 hours)
+- Integrate Claude AI for analysis
+- Implement stance detection
+- Build similarity network
+- Timeline and community analysis
+- Output: Analysis notebooks
+
+**Part 4: Interactive Dashboard** (5-6 hours)
+- Build Streamlit web application
+- Create tree map visualization
+- Add timeline analysis
+- Implement filters and export
+- Output: Production-ready web app
+
+---
+
+## Part 1: Data Preparation
+
+### Input
+- **20,216 JSON files** from Scopus API
+- Raw research paper data from Chulalongkorn University
+
+### Process
+
+**Step 1: Exploratory Data Analysis (EDA)**
+```python
+# Examine JSON structure
+sample_file = 'data/raw/00001.json'
+# Key fields: title, abstract, authors, year, citations, subject areas
+```
+
+**Step 2: Parse JSON Files**
+```python
+# Extract core fields
+- scopus_id, doi, title, abstract
+- authors, affiliations
+- year, citation_count
+- subject_areas (ASJC codes)
+- references (for network analysis)
+```
+
+**Step 3: Clean & Validate**
+```python
+# Remove duplicates (check title + first author)
+# Filter out papers without abstracts
+# Validate year range (2018-2023)
+# Handle missing values
+# Clean text (remove extra whitespace, special chars)
+```
+
+**Step 4: Extract Subject Areas**
+```python
+# Parse ASJC classification codes
+# Map to human-readable subject names
+# Create 7-category hierarchy:
+subject_groups = {
+    'Medicine & Health': ['Medicine', 'Nursing', 'Health Professions', ...],
+    'Life Sciences': ['Biochemistry', 'Molecular Biology', ...],
+    'Computer Science & AI': ['Artificial Intelligence', 'Computer Science', ...],
+    'Engineering': ['Engineering', 'Chemical Engineering', ...],
+    'Materials & Chemistry': ['Chemistry', 'Materials Science', ...],
+    'Physics': ['Physics and Astronomy'],
+    'Environmental Science': ['Environmental Science', 'Earth Sciences', ...]
+}
+```
+
+**Step 5: Generate Tree Map Data**
+```python
+# Pre-compute tree map structure
+# Count papers per subject area
+# Create hierarchical labels/parents/values
+# Assign colors based on categories
+# Save to treemap_data.json (6KB)
+```
+
+### Output Files
+
+**1. papers.parquet** (29MB)
+- 19,523 papers after cleaning
+- Columns: id, scopus_id, doi, title, abstract, year, citation_count, authors, affiliations, references, subject_areas, abstract_length, num_authors, num_references
+
+**2. subject_hierarchy.json** (3KB)
+- 7 subject categories mapping
+- 100+ unique subject areas
+- Used for color coding
+
+**3. treemap_data.json** (6KB)
+- Pre-computed tree map visualization
+- Hierarchical structure with labels, parents, values, colors
+- Instant loading (saves 1-2 seconds per dashboard load)
+
+**4. metadata.json**
+- Dataset statistics
+- Paper counts by year
+- Subject distribution
+
+### Key Statistics
+
+| Metric | Value |
+|--------|-------|
+| Total papers | 19,523 |
+| Year range | 2018-2023 |
+| Avg citations | 9.2 |
+| Papers with abstracts | 100% |
+| Papers with references | 49.1% |
+| Unique subjects | 100+ |
+| Avg subjects per paper | 2.5 |
+
+### Tools Used
+- `pandas`, `json`, `pathlib`
+- `tqdm` (progress bars)
+- `matplotlib`, `seaborn` (visualization)
+
+---
+
+## Part 2: Embeddings & Vector Search
+
+### Step 1: Text Embeddings
+
+**What are Embeddings?**
+
+Embeddings convert text into numerical vectors that capture semantic meaning:
+
+```
+"machine learning for medical diagnosis"
+    ↓ (embedding model)
+[0.23, -0.15, 0.87, ..., 0.45]  (384 numbers)
+
+"AI helps doctors detect diseases"
+    ↓ (embedding model)
+[0.25, -0.12, 0.89, ..., 0.42]  (similar numbers!)
+```
+
+Papers with similar meanings have similar vector representations.
+
+**Why Embeddings Over Keyword Search?**
+
+Keyword search problem:
+- Query: "AI helps doctors"
+- Misses: "machine learning improves diagnosis" (same meaning, different words)
+
+Embedding solution:
+- Both texts convert to similar vectors
+- Cosine similarity measures how close vectors are
+- Finds papers by meaning, not just exact keywords
+
+**Model: all-MiniLM-L6-v2**
 
 ```python
-# src/data/embeddings.py
-
 from sentence_transformers import SentenceTransformer
 
-# Load model (downloads once, ~80MB)
 model = SentenceTransformer('all-MiniLM-L6-v2')
 
-# For each paper:
-for paper in papers:
-    # Combine title + abstract
-    text = f"{paper['title']} {paper['abstract']}"
+# Combine title + abstract for better context
+papers_df['combined_text'] = papers_df['title'] + ' ' + papers_df['abstract']
 
-    # Convert to vector (384 numbers)
-    embedding = model.encode(text)
+# Generate embeddings (batch processing)
+embeddings = model.encode(
+    papers_df['combined_text'].tolist(),
+    show_progress_bar=True,
+    batch_size=32
+)
 
-    # embedding = [0.234, -0.412, 0.881, ..., 0.567]
-
-    # Save
-    embeddings.append(embedding)
-
-# Save all embeddings
+# Save to disk
 np.save('data/embeddings/paper_embeddings.npy', embeddings)
 ```
 
-**Output**:
-```
-data/embeddings/paper_embeddings.npy
+**Why this model?**
+- Free and runs locally
+- Fast: 2-5 minutes for 19K papers
+- Good quality for semantic search
+- 384 dimensions (good balance of quality vs speed)
+- Widely used and well-tested
 
-Shape: (19000, 384)
-- 19,000 papers
-- Each has 384-dimensional vector
-- File size: ~30MB
-```
+**Alternatives considered:**
+- `all-mpnet-base-v2`: Better quality but 2x slower
+- OpenAI embeddings: Best quality but costs $2-3
 
-**Tools**: sentence-transformers, numpy
+### Step 2: Vector Database (ChromaDB)
 
-**Time**: ~2-5 minutes
+**What is a Vector Database?**
 
----
+Naive approach:
+- Compare query vector to all 19,523 paper vectors
+- Slow: ~2 seconds per search
 
-### **PHASE 4: Vector Database Setup** (2 hours)
+Vector database approach:
+- Pre-build index using HNSW algorithm
+- Check only ~100-200 papers instead of all 19,523
+- Fast: <0.1 seconds per search
 
-**What**: Store embeddings in searchable database
+**How HNSW Works**
 
-#### **Why Vector Database?**
+Hierarchical Navigable Small World (HNSW) is like finding a restaurant:
+- **Naive**: Check all 20,000 restaurants in the city
+- **HNSW**: Start in your neighborhood, jump to nearby popular areas, narrow down
+- Result: Check only ~100-200 instead of all 20,000
 
-**Naive approach (slow):**
-```python
-# For each query:
-for paper in 20000_papers:
-    similarity = cosine_similarity(query_vector, paper_vector)
-# 20,000 calculations = 2 seconds per search ❌ Slow!
-```
-
-**With Vector DB (fast):**
-```python
-# Pre-built index (like a map)
-# Smart algorithms skip irrelevant areas
-results = db.search(query_vector, top_k=50)
-# 0.03 seconds ✅ Fast!
-```
-
-#### **Decision Point: Vector Database**
-
-| Database | Speed | Setup | Cost | Scale | Choice |
-|----------|-------|-------|------|-------|--------|
-| **ChromaDB** | Fast | Easy | Free | Good for <100K | ✅ CHOSEN |
-| FAISS | Very fast | Medium | Free | Good for millions | ❌ |
-| Pinecone | Fast | Easy | $70/month | Unlimited | ❌ |
-
-**Why ChromaDB?**
-- Free, runs locally
-- Simple API (3 lines of code)
-- Fast enough for 20K papers (0.03 sec/search)
-- Persistent (saves to disk, don't need to reload)
-- Perfect for prototype
-
-#### **How Vector Search Works**
-
-**Cosine Similarity:**
-```
-Think of vectors as arrows in space:
-- Same direction = Similar (score: 1.0)
-- Perpendicular = Unrelated (score: 0.0)
-- Opposite = Very different (score: -1.0)
-
-Query: [0.8, 0.9, ...]
-Paper A: [0.85, 0.92, ...] → Similarity = 0.95 (very similar!)
-Paper B: [0.1, 0.2, ...]  → Similarity = 0.12 (not similar)
-```
-
-**HNSW Algorithm (How ChromaDB is fast):**
-```
-Like finding a restaurant:
-
-Naive way:
-- Check ALL 20,000 restaurants in city
-- Very slow
-
-HNSW way:
-- Start in your neighborhood
-- Jump to nearby popular areas (highways)
-- Check only ~100 restaurants
-- Much faster!
-```
-
-#### **Implementation**
+**Implementation**
 
 ```python
-# src/search/load_vector_db.py
-
 import chromadb
-from sentence_transformers import SentenceTransformer
+from chromadb.config import Settings
 
-# Load embeddings
-embeddings = np.load('data/embeddings/paper_embeddings.npy')
-papers = pd.read_csv('data/processed/papers.csv')
-
-# Create ChromaDB client (saves to disk)
+# Create persistent client (saves to disk)
 client = chromadb.PersistentClient(path="data/vector_db")
 
 # Create collection
 collection = client.create_collection(
-    name="research_papers",
-    metadata={"description": "CU research papers 2018-2023"}
+    name="papers",
+    metadata={"hnsw:space": "cosine"}
 )
 
-# Add papers (batch for speed)
+# Add papers to database
 collection.add(
-    ids=[str(i) for i in range(len(papers))],
+    ids=[str(i) for i in papers_df['id']],
     embeddings=embeddings.tolist(),
-    documents=papers['abstract'].tolist(),
-    metadatas=papers[['title', 'year', 'citation_count']].to_dict('records')
+    metadatas=papers_df.to_dict('records')
 )
-
-print("✅ Loaded 19,000 papers into ChromaDB")
 ```
 
-**Output**:
-```
-data/vector_db/
-  chroma.sqlite3  (database file)
-  (other ChromaDB files)
+**Search Implementation**
+
+```python
+def semantic_search(query, n_results=20):
+    # Embed query
+    query_embedding = model.encode([query])[0]
+
+    # Search vector database
+    results = collection.query(
+        query_embeddings=[query_embedding.tolist()],
+        n_results=n_results
+    )
+
+    return results
 ```
 
-**Tools**: chromadb, sentence-transformers
+**Cosine Similarity**
 
-**Time**: ~2 minutes to load
+Measures angle between vectors:
+- **1.0**: Same direction (very similar)
+- **0.5**: 60° angle (somewhat related)
+- **0.0**: Perpendicular (unrelated)
+- **-1.0**: Opposite direction (very different)
+
+Example:
+```
+Query: "machine learning for diagnosis"
+Paper 1: "ML improves medical detection" → 0.92 (very relevant)
+Paper 2: "Chemistry lab procedures" → 0.15 (not relevant)
+```
+
+**Why ChromaDB?**
+- Simple Python API
+- PersistentClient (no server needed)
+- Perfect for 20K papers
+- Works well with Streamlit deployment
+- Free and open source
+
+**Alternatives considered:**
+- FAISS: Faster for millions of papers (overkill for 20K)
+- Pinecone: $70/month (too expensive)
+- Weaviate: Requires server setup (more complex)
+
+### Output Files
+
+**1. paper_embeddings.npy** (29MB)
+- 19,523 × 384 dimensional array
+- Float32 precision
+- Fast loading with NumPy
+
+**2. data/vector_db/** (~294MB)
+- ChromaDB index files
+- HNSW graph structure
+- Metadata and IDs
+
+**3. metadata.json**
+- Embedding model name
+- Dimensions
+- Creation timestamp
+
+### Tools Used
+- `sentence-transformers`
+- `chromadb`
+- `numpy`
+- `scikit-learn` (cosine similarity)
 
 ---
 
-### **PHASE 5: Search & Relevance** (3 hours)
+## Part 3: Stance Detection & Network Analysis
 
-**What**: When user searches, find relevant papers and score them
+### AI Analysis with Claude 3.5 Haiku
 
-#### **How Search Works**
+**Why Claude?**
+- Fast: 10-12 seconds for 20 papers
+- Accurate: Better than keyword-based methods
+- Cost-effective: ~$0.01 per search
+- API: Simple integration with Anthropic SDK
 
+**Two AI Tasks**
+
+### Task 1: Generate Summaries
+
+**Goal**: Create concise one-sentence summaries for each paper
+
+**Prompt Design** (optimized for speed):
 ```python
-# User query
-query = "Does machine learning improve medical diagnosis?"
+prompt = f"""Summarize in one sentence:
 
-# 1. Convert query to vector
-model = SentenceTransformer('all-MiniLM-L6-v2')
-query_vector = model.encode(query)  # [0.82, 0.91, ...]
+{paper['abstract'][:800]}
 
-# 2. Search in ChromaDB
-results = collection.query(
-    query_embeddings=[query_vector],
-    n_results=50  # Get top 50 most similar
-)
+Summary:"""
+```
 
-# 3. Results include similarity scores
-for i, paper in enumerate(results['documents'][0]):
-    distance = results['distances'][0][i]  # 0.0 (identical) to 2.0 (opposite)
+**Implementation**:
+```python
+import anthropic
+import asyncio
 
-    # Convert to 0-100 relevance score
-    relevance_score = (2.0 - distance) / 2.0 * 100
+async def generate_summary(paper, client):
+    """Generate one-sentence summary (cached)"""
+    response = await client.messages.create(
+        model="claude-3-5-haiku-20241022",
+        max_tokens=80,
+        temperature=0,
+        messages=[{"role": "user", "content": prompt}]
+    )
+    return response.content[0].text.strip()
 
-    # Assign color based on score
-    if relevance_score > 80:
-        color = '#FF0000'  # Red (very relevant)
-    elif relevance_score > 60:
-        color = '#FFA500'  # Orange
-    elif relevance_score > 40:
-        color = '#FFFF00'  # Yellow
+# Process all papers concurrently
+async def generate_all_summaries(papers):
+    client = anthropic.AsyncAnthropic(api_key=api_key)
+    tasks = [generate_summary(p, client) for p in papers]
+    summaries = await asyncio.gather(*tasks)
+    return summaries
+```
+
+**Caching Strategy**:
+```python
+# Save summaries to JSON
+with open('data/abstract_summaries.json', 'w') as f:
+    json.dump(summary_cache, f)
+
+# Reuse across searches (saves API calls)
+if paper_id in summary_cache:
+    summary = summary_cache[paper_id]
+else:
+    summary = await generate_summary(paper)
+    summary_cache[paper_id] = summary
+```
+
+### Task 2: Stance Detection
+
+**Goal**: Classify if paper supports, contradicts, or is neutral to user's query
+
+**Examples**:
+- Query: "Machine learning improves medical diagnosis"
+- Paper A: "Our ML model achieved 95% accuracy" → **SUPPORT** ✓
+- Paper B: "Automated systems performed worse than humans" → **CONTRADICT** ✗
+- Paper C: "We analyzed 10,000 patient records" → **NEUTRAL** ○
+
+**Prompt Design** (optimized):
+```python
+prompt = f"""Query: {query}
+
+Abstract: {paper['abstract'][:600]}
+
+Does this paper SUPPORT, CONTRADICT, or is NEUTRAL to the query? One word only."""
+```
+
+**Implementation**:
+```python
+async def detect_stance(paper, query, client):
+    """Detect paper stance relative to query"""
+    response = await client.messages.create(
+        model="claude-3-5-haiku-20241022",
+        max_tokens=5,
+        temperature=0,
+        messages=[{"role": "user", "content": prompt}]
+    )
+
+    stance_text = response.content[0].text.strip().upper()
+
+    # Parse response
+    if 'SUPPORT' in stance_text or 'ENTAIL' in stance_text:
+        return 'SUPPORT'
+    elif 'CONTRADICT' in stance_text:
+        return 'CONTRADICT'
     else:
-        color = '#0000FF'  # Blue (less relevant)
+        return 'NEUTRAL'
 ```
 
-#### **No LLM Needed for Relevance!**
+**Performance Optimization**:
+- Shortened prompts by ~30% → 30-40% faster
+- Reduced max_tokens (summary: 80, stance: 5)
+- Async processing (all papers in parallel)
+- Caching (reuse summaries across searches)
 
-Just use the similarity score from ChromaDB directly. It's already meaningful:
-- 90-100% = Very relevant (same topic, directly answers query)
-- 70-90% = Related (same field, adjacent topic)
-- 50-70% = Somewhat related (broader context)
-- <50% = Less relevant (different topic)
+**Result**: 20 papers analyzed in 10-12 seconds (was 15-20s before optimization)
 
-**Tools**: chromadb, sentence-transformers
+### Network Analysis
 
-**Time**: 0.03 seconds per search
-
----
-
-### **PHASE 6: Stance Detection** (4 hours)
-
-**What**: Determine if paper supports/contradicts user's hypothesis
-
-#### **What is Stance?**
-
-```
-User query: "Machine learning improves medical diagnosis"
-
-Paper A: "Our ML model achieved 95% accuracy in cancer detection"
-→ STANCE: SUPPORTS (entailment) → Green edge
-
-Paper B: "Automated systems performed worse than human doctors"
-→ STANCE: CONTRADICTS (contradiction) → Red edge
-
-Paper C: "We analyzed 10,000 patient records"
-→ STANCE: NEUTRAL (no clear support/contradict) → Gray edge
-```
-
-#### **Decision Point: Stance Detection Method**
-
-| Method | Accuracy | Speed | Cost | Reasoning | Choice |
-|--------|----------|-------|------|-----------|--------|
-| **NLI Model (DeBERTa)** | 85% | Fast (5 sec/50 papers) | Free | Yes | ✅ CHOSEN |
-| GPT-4o-mini batch | 90% | Medium (10 sec/50) | $0.01/search | Yes | ❌ |
-| Simple keywords | 40% | Instant | Free | No | ❌ |
-
-**Why NLI Model (DeBERTa)?**
-- Free, runs locally
-- Fast enough (0.1 sec per paper, or 5 sec for 50 papers)
-- Good accuracy (85%)
-- Can process all 50 papers (not just top 10)
-- Trained specifically for entailment/contradiction detection
-
-#### **How NLI Works**
-
-**NLI = Natural Language Inference**
-
+**Similarity Network**:
 ```python
-# NLI model checks relationship between two texts
-
-Premise (user query): "AI improves healthcare"
-Hypothesis (paper): "Our AI model achieved 95% accuracy"
-
-NLI Model outputs:
-- ENTAILMENT (0.89 confidence) ✅ Paper supports query
-- CONTRADICTION (0.05)
-- NEUTRAL (0.06)
-
-Result: ENTAILMENT → Green edge
-```
-
-#### **Implementation**
-
-```python
-# src/search/stance_detection.py
-
-from transformers import pipeline
-
-# Load NLI model (downloads once, ~500MB)
-nli = pipeline(
-    "text-classification",
-    model="microsoft/deberta-v3-base-mnli"
-)
-
-# For each paper in results:
-for paper in top_50_papers:
-    # Create input (query [SEP] paper abstract)
-    input_text = f"{query} [SEP] {paper['abstract']}"
-
-    # Get stance
-    result = nli(input_text)
-
-    # result = {'label': 'ENTAILMENT', 'score': 0.89}
-
-    if result['label'] == 'ENTAILMENT':
-        paper['stance'] = 'supports'
-        paper['edge_color'] = '#00FF00'  # Green
-    elif result['label'] == 'CONTRADICTION':
-        paper['stance'] = 'contradicts'
-        paper['edge_color'] = '#FF0000'  # Red
-    else:  # NEUTRAL
-        paper['stance'] = 'neutral'
-        paper['edge_color'] = '#808080'  # Gray
-```
-
-**Optimization (if slow on CPU):**
-```python
-# Option 1: Only analyze top 20 papers (not all 50)
-top_papers = results[:20]
-
-# Option 2: Use GPU if available
-device = 0 if torch.cuda.is_available() else -1
-nli = pipeline(..., device=device)
-
-# Option 3: Batch processing
-results = nli([f"{query} [SEP] {p['abstract']}" for p in papers])
-```
-
-**Tools**: transformers (HuggingFace), torch
-
-**Time**: 5 seconds for 50 papers (CPU), or 1 second (GPU)
-
----
-
-### **PHASE 7: Citation Network** (3 hours)
-
-**What**: Build graph showing how papers cite each other
-
-#### **Graph Structure**
-
-```python
-# Nodes = Papers
-Node attributes:
-  - id: Paper ID
-  - title: Paper title
-  - size: citation_count * 10 (for visualization)
-  - color: relevance_color (from Phase 5)
-  - relevance_score: 0-100
-
-# Edges = Citations OR Stance
-Edge type 1 - Citations:
-  - From: Paper A
-  - To: Paper B (if A cites B)
-  - Color: Gray
-
-Edge type 2 - Stance (to query):
-  - From: Paper
-  - To: User query (virtual node)
-  - Color: stance_color (green/red/gray)
-```
-
-#### **Implementation**
-
-```python
-# src/graph/builder.py
-
 import networkx as nx
+from sklearn.metrics.pairwise import cosine_similarity
 
-# Create directed graph
-G = nx.DiGraph()
-
-# Add nodes (papers)
-for paper in search_results:
-    G.add_node(
-        paper['id'],
-        title=paper['title'],
-        abstract=paper['abstract'],
-        year=paper['year'],
-        citations=paper['citation_count'],
-        relevance_score=paper['relevance_score'],
-        stance=paper['stance'],
-        # Visual properties
-        size=max(10, paper['citation_count'] * 10),  # Min size 10
-        color=paper['color'],  # Relevance color
-        border_color=paper['edge_color']  # Stance color as border
-    )
-
-# Add edges (citations between papers)
-for paper in search_results:
-    # Check if this paper cites any other papers in results
-    for ref_id in paper['references']:
-        if ref_id in result_ids:
-            G.add_edge(
-                paper['id'],
-                ref_id,
-                color='#808080',  # Gray for citations
-                weight=1
-            )
-
-# Network stats
-print(f"Nodes: {G.number_of_nodes()}")
-print(f"Edges: {G.number_of_edges()}")
-print(f"Connected components: {nx.number_connected_components(G.to_undirected())}")
-```
-
-**Output**: NetworkX graph object
-
-**Tools**: networkx
-
-**Time**: Instant (<1 second)
-
----
-
-### **PHASE 8: Summarization** (2 hours)
-
-**What**: When user clicks paper, generate context-aware summary
-
-#### **Decision Point: LLM Choice**
-
-| LLM | Quality | Speed | Cost | Choice |
-|-----|---------|-------|------|--------|
-| **GPT-4o-mini** | Excellent | Fast (2 sec) | $0.001/summary | ✅ RECOMMENDED |
-| Ollama (Llama 3.1) | Good | Slow (5-10 sec) | Free | ✅ FREE OPTION |
-| GPT-4o | Best | Fast | $0.01/summary | ❌ Expensive |
-
-**Recommendation**: Use GPT-4o-mini
-- Only $0.001 per summary (~$1-2 total for testing)
-- Fast (2 seconds)
-- High quality
-- Much better than free options
-
-**Fallback**: If $0 budget, use Ollama (free but slower)
-
-#### **Why Context-Aware?**
-
-**Bad approach (generic summary):**
-```
-"This paper discusses machine learning applications in healthcare..."
-(Doesn't relate to user's specific question)
-```
-
-**Good approach (context-aware):**
-```
-User query: "Does ML improve diagnosis accuracy?"
-
-Summary: "This paper DIRECTLY SUPPORTS your hypothesis.
-The authors achieved 95% accuracy using CNNs for lung cancer
-detection, improving upon the 87% baseline of human radiologists.
-Key finding: Deep learning models can identify subtle patterns
-invisible to human experts."
-```
-
-#### **Implementation**
-
-```python
-# src/llm/summarizer.py
-
-from openai import OpenAI
-
-client = OpenAI(api_key="sk-...")
-
-def summarize_paper(query, paper):
-    """Generate context-aware summary"""
-
-    prompt = f"""You are a research assistant helping with literature review.
-
-USER'S RESEARCH QUESTION:
-{query}
-
-PAPER DETAILS:
-Title: {paper['title']}
-Abstract: {paper['abstract']}
-Year: {paper['year']}
-Citations: {paper['citation_count']}
-
-TASK:
-Summarize this paper in relation to the user's research question.
-- Does it support, contradict, or provide neutral context?
-- What are the key findings?
-- What methodology was used?
-- How does it relate to the user's question?
-
-Keep summary under 150 words, focused and actionable.
-"""
-
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[
-            {"role": "system", "content": "You are a helpful research assistant."},
-            {"role": "user", "content": prompt}
-        ],
-        max_tokens=200,
-        temperature=0.7
-    )
-
-    return response.choices[0].message.content
-```
-
-**Cost Calculation:**
-```
-GPT-4o-mini pricing: $0.15 per 1M input tokens, $0.60 per 1M output tokens
-
-Average summary:
-- Input: ~300 tokens (prompt + paper)
-- Output: ~150 tokens (summary)
-- Cost per summary: ~$0.0001 (basically free)
-
-For 5 users × 100 searches × 10 summaries:
-= 5,000 summaries
-= 5,000 × $0.0001 = $0.50
-
-Realistic usage: ~$1-2 total
-```
-
-**Tools**: openai, python-dotenv (for API key)
-
-**Time**: 2-3 seconds per summary
-
----
-
-### **PHASE 9: Dashboard** (10 hours)
-
-**What**: Build interactive web interface
-
-#### **Decision Point: Framework**
-
-| Framework | Speed to Build | Flexibility | Learning Curve | Choice |
-|-----------|---------------|-------------|----------------|--------|
-| **Streamlit** | Fast (2 days) | Medium | Easy | ✅ CHOSEN |
-| Plotly Dash | Medium (3 days) | High | Medium | ❌ |
-| React + FastAPI | Slow (1 week) | Very High | Hard | ❌ |
-
-**Why Streamlit?**
-- Fastest to build (pure Python, no HTML/CSS/JS)
-- Perfect for prototypes and demos
-- Built-in components (sliders, buttons, etc.)
-- Easy deployment (Streamlit Cloud free)
-- Good enough for 5 users
-
-#### **Dashboard Features**
-
-**Page Layout:**
-```
-┌─────────────────────────────────────────┐
-│  Literature Review Assistant            │
-├─────────────────────────────────────────┤
-│  [Search Box: Enter research question]  │
-│  [Search Button]                        │
-├─────────────────────────────────────────┤
-│  Results: 50 papers found               │
-│  Relevance: 🔴 10 🟠 20 🟡 15 🔵 5      │
-├─────────────────────────────────────────┤
-│  ┌─────────────────────────────────┐   │
-│  │   INTERACTIVE GRAPH             │   │
-│  │   (Pyvis network)               │   │
-│  │   - Hover: show title           │   │
-│  │   - Click: show summary panel   │   │
-│  └─────────────────────────────────┘   │
-├─────────────────────────────────────────┤
-│  Selected Paper Details:                │
-│  Title: ...                             │
-│  Abstract: ...                          │
-│  [Summarize Button] [Add to Report]    │
-└─────────────────────────────────────────┘
-```
-
-#### **Implementation**
-
-```python
-# dashboard/app.py
-
-import streamlit as st
-from pyvis.network import Network
-import streamlit.components.v1 as components
-
-# Configure page
-st.set_page_config(
-    page_title="Literature Review Assistant",
-    page_icon="🔬",
-    layout="wide"
-)
-
-st.title("🔬 Literature Review Assistant")
-
-# Search interface
-query = st.text_input(
-    "Enter your research question:",
-    placeholder="e.g., Does machine learning improve medical diagnosis?"
-)
-
-if st.button("Search", type="primary"):
-    with st.spinner("Searching 20,000 papers..."):
-        # 1. Search
-        results = search(query)  # From Phase 5
-
-        # 2. Detect stance
-        results = detect_stance(query, results)  # From Phase 6
-
-        # 3. Build graph
-        G = build_graph(results)  # From Phase 7
-
-        # Store in session state
-        st.session_state.results = results
-        st.session_state.graph = G
-
-# Display results
-if 'results' in st.session_state:
-    results = st.session_state.results
-
-    # Stats
-    st.write(f"**Found {len(results)} relevant papers**")
-
-    # Relevance distribution
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Very Relevant 🔴", sum(1 for r in results if r['score'] > 80))
-    col2.metric("Related 🟠", sum(1 for r in results if 60 < r['score'] <= 80))
-    col3.metric("Somewhat 🟡", sum(1 for r in results if 40 < r['score'] <= 60))
-    col4.metric("Less 🔵", sum(1 for r in results if r['score'] <= 40))
-
-    # Interactive graph
-    st.subheader("Citation Network")
-
-    # Build Pyvis network
-    net = Network(height="600px", width="100%", bgcolor="#222222", font_color="white")
+# Build similarity graph
+def build_similarity_network(papers, embeddings, threshold=0.7):
+    G = nx.Graph()
 
     # Add nodes
-    for node_id, data in st.session_state.graph.nodes(data=True):
-        net.add_node(
-            node_id,
-            label=data['title'][:50],  # Truncate long titles
-            size=data['size'],
-            color=data['color'],
-            title=f"{data['title']}<br>Citations: {data['citations']}<br>Relevance: {data['relevance_score']:.0f}%"
-        )
+    for i, paper in enumerate(papers):
+        G.add_node(paper['id'], **paper)
 
-    # Add edges
-    for source, target, data in st.session_state.graph.edges(data=True):
-        net.add_edge(source, target, color=data['color'])
+    # Add edges based on similarity
+    similarities = cosine_similarity(embeddings)
+    for i in range(len(papers)):
+        for j in range(i+1, len(papers)):
+            if similarities[i][j] > threshold:
+                G.add_edge(papers[i]['id'], papers[j]['id'],
+                          weight=similarities[i][j])
 
-    # Configure physics
-    net.set_options("""
-    {
-        "physics": {
-            "forceAtlas2Based": {
-                "gravitationalConstant": -50,
-                "springLength": 100
-            },
-            "solver": "forceAtlas2Based"
-        }
+    return G
+```
+
+**Community Detection**:
+```python
+from networkx.algorithms import community
+
+# Detect research clusters
+communities = community.greedy_modularity_communities(G)
+
+# Assign colors to communities
+community_map = {}
+for i, comm in enumerate(communities):
+    for node in comm:
+        community_map[node] = i
+```
+
+### Timeline Analysis
+
+**Publication Trends**:
+```python
+# Papers over time
+yearly_counts = papers_df.groupby('year').size()
+
+# Stance distribution by year
+stance_by_year = papers_df.groupby(['year', 'stance']).size()
+
+# Citation patterns
+citation_trends = papers_df.groupby('year')['citation_count'].mean()
+```
+
+### Tools Used
+- `anthropic` (Claude API)
+- `asyncio` (concurrent processing)
+- `networkx` (graph analysis)
+- `scikit-learn` (similarity metrics)
+
+---
+
+## Part 4: Interactive Dashboard
+
+### Framework: Streamlit
+
+**Why Streamlit?**
+- Pure Python (no HTML/CSS/JavaScript needed)
+- Fast development (2-3 days for full dashboard)
+- Built-in components (search, sliders, tabs)
+- Easy deployment
+- Perfect for data science projects
+
+### Dashboard Structure (715 lines)
+
+**File**: `part4_dashboard/app.py`
+
+**Three Main Tabs**:
+
+### Tab 1: Home - Research Landscape
+
+**Features**:
+1. **Key Metrics** (4 cards at top)
+   - Total papers: 19,523
+   - Subject categories: 7
+   - Year range: 2018-2023
+   - Avg citations: 9.2
+
+2. **Interactive Tree Map** (Plotly)
+   ```python
+   @st.cache_data
+   def load_treemap_data():
+       """Load pre-computed tree map (instant)"""
+       with open('../data/processed/treemap_data.json', 'r') as f:
+           return json.load(f)
+
+   fig = go.Figure(go.Treemap(
+       labels=data['labels'],
+       parents=data['parents'],
+       values=data['values'],
+       marker_colors=data['colors']
+   ))
+   ```
+
+3. **Top 20 Subject Areas Table**
+   - Subject name
+   - Paper count
+   - Percentage of total
+
+**Color Scheme**:
+```python
+CATEGORY_COLORS = {
+    'Medicine & Health': '#E91E63',        # Pink
+    'Life Sciences': '#4CAF50',            # Green
+    'Computer Science & AI': '#2196F3',    # Blue
+    'Engineering': '#FF9800',              # Orange
+    'Materials & Chemistry': '#9C27B0',    # Purple
+    'Physics': '#00BCD4',                  # Cyan
+    'Environmental Science': '#8BC34A',    # Light Green
+    'Other': '#9E9E9E'                     # Gray
+}
+```
+
+### Tab 2: Timeline - Temporal Analysis
+
+**Features**:
+1. **Year Range Slider**
+   ```python
+   year_range = st.slider(
+       "Select Year Range",
+       min_value=2018,
+       max_value=2023,
+       value=(2018, 2023)
+   )
+   ```
+
+2. **Papers Over Time** (Bar chart)
+   - X-axis: Year
+   - Y-axis: Paper count
+   - Color: Blue gradient
+
+3. **Stance Distribution** (Pie chart)
+   - SUPPORT: Green (#10b981)
+   - CONTRADICT: Red (#ef4444)
+   - NEUTRAL: Gray (#6b7280)
+
+4. **Stance by Year** (Stacked bar chart)
+   - Shows how stance distribution changes over time
+   - Helps identify research trends
+
+### Tab 3: Papers - Search & Analysis
+
+**Sidebar - Search Controls**:
+```python
+# API Key input
+api_key = st.text_input("Anthropic API Key", type="password")
+
+# Search query
+query = st.text_area("Research Question", height=100)
+
+# Number of papers
+n_papers = st.slider("Number of papers", 3, 50, 20)
+
+# Search button
+if st.button("Search & Analyze"):
+    # Perform search and AI analysis
+```
+
+**Main Panel - Results**:
+
+1. **Search Summary**
+   - Total papers found
+   - Search relevance score
+   - Processing time
+
+2. **Filter Controls**
+   ```python
+   # Filter by stance
+   stance_filter = st.multiselect(
+       "Filter by Stance",
+       ['SUPPORT', 'CONTRADICT', 'NEUTRAL']
+   )
+
+   # Filter by subject
+   subject_filter = st.selectbox(
+       "Filter by Subject",
+       ['All'] + list(subject_areas)
+   )
+
+   # Sort options
+   sort_by = st.selectbox(
+       "Sort by",
+       ['Relevance', 'Citations', 'Year']
+   )
+   ```
+
+3. **Paper Cards** (color-coded)
+   ```python
+   def show_paper_card(row, subject_groups):
+       stance = row['stance']
+       emoji = {'SUPPORT': '✓', 'CONTRADICT': '✗', 'NEUTRAL': '○'}[stance]
+
+       with st.expander(f"**{emoji} {stance}** | {row['title']}", expanded=False):
+           # Summary
+           st.markdown(f"*{row['summary']}*")
+
+           # Color-coded subject tags
+           if 'subject_areas' in row:
+               subjects = row['subject_areas'][:5]
+               for subject in subjects:
+                   bg_color = get_subject_color(subject, subject_groups)
+                   # Display tag with background color
+
+           # Metadata
+           col1, col2, col3 = st.columns(3)
+           col1.metric("Year", row['year'])
+           col2.metric("Citations", row['citation_count'])
+           col3.metric("Relevance", f"{row['relevance']:.1%}")
+
+           # Abstract
+           with st.expander("Full Abstract"):
+               st.write(row['abstract'])
+   ```
+
+4. **Export to CSV**
+   ```python
+   csv = results_df.to_csv(index=False)
+   st.download_button(
+       "Download Results (CSV)",
+       csv,
+       "search_results.csv",
+       "text/csv"
+   )
+   ```
+
+### UI/UX Design
+
+**Modern CSS** (blue/gray palette):
+```python
+st.markdown("""
+<style>
+    /* Typography */
+    h1 {
+        color: #1e3a8a;
+        font-weight: 700;
     }
-    """)
 
-    # Save and display
-    net.save_graph("temp_graph.html")
-    with open("temp_graph.html", "r", encoding="utf-8") as f:
-        html = f.read()
-    components.html(html, height=650)
+    /* Tabs */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 1.5rem;
+        background-color: #f8fafc;
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+    }
 
-    # Paper selection
-    st.subheader("Paper Details")
-    selected_paper = st.selectbox(
-        "Select a paper to view details:",
-        options=range(len(results)),
-        format_func=lambda i: results[i]['title']
-    )
+    /* Cards */
+    .stExpander {
+        border: 1px solid #e2e8f0;
+        border-radius: 0.5rem;
+        margin-bottom: 1rem;
+    }
 
-    paper = results[selected_paper]
-
-    # Display details
-    st.write(f"**Title:** {paper['title']}")
-    st.write(f"**Year:** {paper['year']} | **Citations:** {paper['citation_count']}")
-    st.write(f"**Relevance:** {paper['relevance_score']:.0f}% | **Stance:** {paper['stance']}")
-
-    with st.expander("Abstract"):
-        st.write(paper['abstract'])
-
-    # Summarize button
-    if st.button("Generate AI Summary"):
-        with st.spinner("Generating summary..."):
-            summary = summarize_paper(query, paper)  # From Phase 8
-            st.success(summary)
-
-    # Add to report
-    if 'report_papers' not in st.session_state:
-        st.session_state.report_papers = []
-
-    if st.button("Add to Report"):
-        st.session_state.report_papers.append(paper)
-        st.success(f"Added! ({len(st.session_state.report_papers)} papers in report)")
-
-# Generate report
-if 'report_papers' in st.session_state and len(st.session_state.report_papers) > 0:
-    st.sidebar.subheader(f"Report ({len(st.session_state.report_papers)} papers)")
-
-    if st.sidebar.button("Generate Literature Review"):
-        with st.spinner("Generating report..."):
-            report = generate_report(query, st.session_state.report_papers)
-            st.download_button(
-                "Download Report",
-                report,
-                file_name="literature_review.md",
-                mime="text/markdown"
-            )
+    /* Metrics */
+    [data-testid="stMetricValue"] {
+        font-size: 2rem;
+        color: #1e3a8a;
+    }
+</style>
+""", unsafe_allow_html=True)
 ```
 
-**Tools**: streamlit, pyvis, plotly
+**Stance Badges**:
+```python
+STANCE_COLORS = {
+    'SUPPORT': '#10b981',      # Green
+    'CONTRADICT': '#ef4444',   # Red
+    'NEUTRAL': '#6b7280'       # Gray
+}
 
-**Time**: 1-2 days to build, 1 day to polish
+STANCE_EMOJIS = {
+    'SUPPORT': '✓',
+    'CONTRADICT': '✗',
+    'NEUTRAL': '○'
+}
+```
+
+### Caching Strategy
+
+**1. Data Loading** (survives app reruns):
+```python
+@st.cache_data
+def load_papers():
+    return pd.read_parquet('../data/processed/papers.parquet')
+
+@st.cache_data
+def load_embeddings():
+    return np.load('../data/embeddings/paper_embeddings.npy')
+
+@st.cache_data
+def load_treemap_data():
+    with open('../data/processed/treemap_data.json', 'r') as f:
+        return json.load(f)
+```
+
+**2. Model Loading** (survives app reruns, only one instance):
+```python
+@st.cache_resource
+def load_embedding_model():
+    return SentenceTransformer('all-MiniLM-L6-v2')
+
+@st.cache_resource
+def get_chroma_client():
+    return chromadb.PersistentClient(path="../data/vector_db")
+```
+
+**3. Summary Caching** (persistent across sessions):
+```python
+# Load cache from disk
+with open('../data/abstract_summaries.json', 'r') as f:
+    summary_cache = json.load(f)
+
+# Use cached summary if available
+if paper_id in summary_cache:
+    summary = summary_cache[paper_id]
+else:
+    summary = await generate_summary(paper)
+    summary_cache[paper_id] = summary
+    # Save back to disk
+    with open('../data/abstract_summaries.json', 'w') as f:
+        json.dump(summary_cache, f)
+```
+
+### Tools Used
+- `streamlit`
+- `plotly`
+- `pandas`
+- `asyncio` (for concurrent AI calls)
 
 ---
 
-### **PHASE 10: Deployment** (3 hours)
+## Data Files Reference
 
-**What**: Host app for 5 users to test
+### Essential Files (keep these)
 
-#### **Decision Point: Deployment Platform**
+**Core Data** (~352MB total):
 
-| Platform | Cost | Setup | Speed | Uptime | Choice |
-|----------|------|-------|-------|--------|--------|
-| **ngrok (local)** | Free | 2 min | Fast | While laptop on | ✅ FOR TESTING |
-| **Streamlit Cloud** | Free | 10 min | Medium | 24/7 | ✅ FOR PRESENTATION |
-| Hugging Face Spaces | Free | 15 min | Slow | 24/7 | ❌ |
-| Railway.app | $5/month | 10 min | Fast | 24/7 | ❌ |
+1. **papers.parquet** (29MB)
+   - Main dataset with 19,523 papers
+   - Columns: id, scopus_id, doi, title, abstract, year, citation_count, authors, affiliations, references, subject_areas
+   - Format: Parquet (fast loading, preserves types)
 
-**Decision Tree:**
+2. **paper_embeddings.npy** (29MB)
+   - 19,523 × 384 dimensional array
+   - Sentence transformer embeddings
+   - Used for semantic search
+
+3. **vector_db/** (~294MB)
+   - ChromaDB index and files
+   - HNSW graph structure
+   - Enables fast similarity search
+
+4. **subject_hierarchy.json** (3KB)
+   - 7 subject category mapping
+   - Used for color coding and filtering
+
+5. **treemap_data.json** (6KB)
+   - Pre-computed tree map structure
+   - Instant loading (saves 1-2s)
+
+6. **abstract_summaries.json** (24KB)
+   - Cached AI summaries
+   - Reused across searches
+   - Saves API costs
+
+7. **metadata.json** (few KB)
+   - Dataset statistics
+   - Embedding model info
+   - Creation timestamps
+
+### File Locations
+
 ```
-Testing with 5 users for a few days?
-→ Use ngrok (free, runs on your laptop)
-
-Need it online 24/7 for presentation/demo?
-→ Use Streamlit Cloud (free, permanent)
-
-Need more RAM/GPU?
-→ Use Hugging Face Spaces (free, more resources)
+data/
+├── abstract_summaries.json          # AI summaries cache (24KB)
+├── embeddings/
+│   ├── paper_embeddings.npy         # Vector embeddings (29MB)
+│   └── metadata.json                # Embedding metadata
+├── processed/
+│   ├── papers.parquet               # Main dataset (29MB)
+│   ├── subject_hierarchy.json       # Category mapping (3KB)
+│   ├── treemap_data.json           # Pre-computed tree map (6KB)
+│   └── metadata.json                # Dataset statistics
+└── vector_db/                       # ChromaDB files (294MB)
 ```
 
-#### **Option 1: ngrok (Quick Testing)**
+**Total**: ~352MB (after cleanup from original ~516MB)
 
+---
+
+## Performance Optimizations
+
+### 1. Tree Map Pre-computation
+
+**Problem**: Tree map computed on every dashboard load (1-2 seconds)
+
+**Solution**: Pre-compute in Part 1, save to JSON, load instantly
+
+**Implementation**:
+```python
+# In Part 1 notebook
+treemap_data = build_treemap_data(papers_df)
+with open('data/processed/treemap_data.json', 'w') as f:
+    json.dump(treemap_data, f)
+
+# In dashboard
+@st.cache_data
+def load_treemap_data():
+    with open('../data/processed/treemap_data.json', 'r') as f:
+        return json.load(f)
+```
+
+**Result**: Instant loading (was 1-2s)
+
+### 2. LLM Prompt Optimization
+
+**Problem**: AI analysis taking 15-20 seconds for 20 papers
+
+**Changes**:
+- Shortened prompts by ~30%
+- Reduced max_tokens (summary: 100→80, stance: 10→5)
+- More direct prompt format
+- Truncate abstracts (summary: 800 chars, stance: 600 chars)
+
+**Before**:
+```python
+prompt = f"""You are a research assistant. Please read the following abstract
+and provide a comprehensive summary that captures the key points...
+
+Abstract: {abstract}
+
+Please provide a one-sentence summary:"""
+
+max_tokens = 100
+```
+
+**After**:
+```python
+prompt = f"""Summarize in one sentence:
+
+{abstract[:800]}
+
+Summary:"""
+
+max_tokens = 80
+```
+
+**Result**: 30-40% faster (now 10-12 seconds for 20 papers)
+
+### 3. Summary Caching
+
+**Problem**: Regenerating summaries for same papers across searches
+
+**Solution**: Save summaries to JSON file, reuse across sessions
+
+**Implementation**:
+```python
+# Load cache
+if os.path.exists('data/abstract_summaries.json'):
+    with open('data/abstract_summaries.json', 'r') as f:
+        summary_cache = json.load(f)
+else:
+    summary_cache = {}
+
+# Check cache before generating
+if paper_id not in summary_cache:
+    summary = await generate_summary(paper)
+    summary_cache[paper_id] = summary
+    # Save immediately
+    with open('data/abstract_summaries.json', 'w') as f:
+        json.dump(summary_cache, f)
+```
+
+**Result**: Instant summaries for previously analyzed papers
+
+### 4. Streamlit Caching
+
+**Data Caching** (survives reruns):
+```python
+@st.cache_data
+def load_papers():
+    return pd.read_parquet('../data/processed/papers.parquet')
+```
+
+**Resource Caching** (only one instance):
+```python
+@st.cache_resource
+def load_embedding_model():
+    return SentenceTransformer('all-MiniLM-L6-v2')
+```
+
+**Result**: Dashboard loads in ~1 second (was ~3 seconds)
+
+### Performance Summary
+
+| Metric | Before | After | Improvement |
+|--------|--------|-------|-------------|
+| Tree map load | 1-2s | Instant | 100% faster |
+| LLM analysis (20 papers) | 15-20s | 10-12s | 30-40% faster |
+| Dashboard load | ~3s | ~1s | 66% faster |
+| Code size | 930 lines | 715 lines | 23% smaller |
+| Data folder | 516MB | 352MB | 164MB saved |
+
+---
+
+## Deployment Guide
+
+### Local Development
+
+**1. Install Dependencies**:
 ```bash
-# 1. Run Streamlit locally
-streamlit run dashboard/app.py
-
-# 2. In another terminal, expose to internet
-ngrok http 8501
-
-# 3. Share the URL
-# ngrok gives you: https://abc123.ngrok-free.app
-# Send this to your 5 testers
-
-# Note: Your laptop must stay on!
-# Free tier: 40 connections/minute (enough for 5 users)
+cd part4_dashboard
+pip install -r requirements.txt
 ```
 
-**Pros:**
-- Free
-- 2 minutes to setup
-- Full power (your laptop's CPU/GPU)
-- Easy to debug
-
-**Cons:**
-- Your laptop must stay on
-- If laptop sleeps, app goes down
-- URL changes each time you restart ngrok
-
-#### **Option 2: Streamlit Cloud (Permanent)**
-
+**2. Set API Key**:
 ```bash
-# 1. Push code to GitHub (already done!)
-git push
+# Option 1: Environment variable
+export ANTHROPIC_API_KEY="your-key-here"
 
-# 2. Go to: share.streamlit.io
-
-# 3. Sign in with GitHub
-
-# 4. Click "New app"
-
-# 5. Select:
-#    - Repository: PetePK/Datasci_Project
-#    - Branch: main
-#    - Main file: dashboard/app.py
-
-# 6. Click "Deploy"
-
-# 7. Get permanent URL:
-#    https://datasci-project.streamlit.app
-
-# Auto-deploys on git push!
+# Option 2: Enter in dashboard sidebar
 ```
 
-**Pros:**
-- Free
-- Always online (24/7)
-- Auto-updates on git push
-- Good for 5 users
-- Easy to share (clean URL)
-
-**Cons:**
-- Slow cold start (first load takes 10 sec)
-- Limited resources (1 CPU, 1GB RAM)
-- Might need to reduce NLI model size
-
-**Optimization for Streamlit Cloud:**
-```python
-# Only load models once (use st.cache_resource)
-@st.cache_resource
-def load_models():
-    model = SentenceTransformer('all-MiniLM-L6-v2')
-    nli = pipeline("text-classification", model="microsoft/deberta-v3-base-mnli")
-    return model, nli
-
-# Load vector DB once
-@st.cache_resource
-def load_db():
-    client = chromadb.PersistentClient(path="data/vector_db")
-    return client.get_collection("research_papers")
+**3. Run Dashboard**:
+```bash
+streamlit run app.py
 ```
 
-**Tools**: streamlit cloud, git, GitHub
+**4. Open Browser**:
+```
+http://localhost:8501
+```
 
-**Time**: 10 minutes
+### Streamlit Cloud Deployment (Free)
+
+**1. Push to GitHub**:
+```bash
+git add .
+git commit -m "Ready for deployment"
+git push origin main
+```
+
+**2. Deploy on Streamlit Cloud**:
+- Go to [share.streamlit.io](https://share.streamlit.io)
+- Sign in with GitHub
+- Click "New app"
+- Select repository: `yourusername/Datasci_Project`
+- Main file path: `part4_dashboard/app.py`
+- Click "Deploy"
+
+**3. Configure Secrets**:
+- In Streamlit Cloud dashboard, go to Settings → Secrets
+- Add:
+```toml
+ANTHROPIC_API_KEY = "your-api-key-here"
+```
+
+**4. Access Your App**:
+```
+https://your-app-name.streamlit.app
+```
+
+### Deployment Checklist
+
+- [ ] All data files in correct locations
+- [ ] requirements.txt up to date
+- [ ] API keys in secrets (not in code)
+- [ ] .gitignore configured (exclude API keys)
+- [ ] ChromaDB files included in repo
+- [ ] Streamlit caching configured
+- [ ] App tested locally
+- [ ] README updated
+
+### Troubleshooting
+
+**Issue**: ChromaDB not found after deploy
+- **Solution**: Ensure `data/vector_db/` is not in `.gitignore`
+
+**Issue**: App times out on load
+- **Solution**: Use `@st.cache_resource` for model loading
+
+**Issue**: Out of memory
+- **Solution**: Use batch processing, limit number of papers
 
 ---
 
-## 💰 COMPLETE COST BREAKDOWN
+## Common Issues & Solutions
 
-### **Free Option ($0)**
+**Issue: "No module named 'sentence_transformers'"**
+- Solution: `pip install sentence-transformers`
 
-| Component | Tool | Cost |
-|-----------|------|------|
-| Embeddings | sentence-transformers | $0 |
-| Vector DB | ChromaDB (local) | $0 |
-| Stance Detection | DeBERTa NLI | $0 |
-| Summaries | Ollama (Llama 3.1) | $0 |
-| Dashboard | Streamlit | $0 |
-| Deployment | ngrok or Streamlit Cloud | $0 |
-| **TOTAL** | | **$0** |
+**Issue: "API key not found"**
+- Solution: Set `ANTHROPIC_API_KEY` environment variable or enter in sidebar
 
-**Trade-off**: Slower summaries (5-10 sec with Ollama)
+**Issue: "ChromaDB collection not found"**
+- Solution: Run Part 2 notebook to build vector database
 
----
+**Issue: Dashboard loads slowly**
+- Solution: Ensure caching is working (`@st.cache_data`, `@st.cache_resource`)
 
-### **Recommended Option (~$2)**
+**Issue: Tree map not displaying**
+- Solution: Check that `treemap_data.json` exists in `data/processed/`
 
-| Component | Tool | Cost |
-|-----------|------|------|
-| Embeddings | sentence-transformers | $0 |
-| Vector DB | ChromaDB (local) | $0 |
-| Stance Detection | DeBERTa NLI | $0 |
-| Summaries | **OpenAI GPT-4o-mini** | **~$1-2** |
-| Dashboard | Streamlit | $0 |
-| Deployment | Streamlit Cloud | $0 |
-| **TOTAL** | | **~$1-2** |
-
-**Cost Calculation:**
-```
-GPT-4o-mini:
-- Input: $0.15 per 1M tokens
-- Output: $0.60 per 1M tokens
-
-Usage estimate (5 users testing):
-- 5 users × 20 searches = 100 searches
-- 100 searches × 10 summaries = 1000 summaries
-- 1000 summaries × 450 tokens avg = 450K tokens
-- Cost = (450K × $0.15/1M) + (150K × $0.60/1M) ≈ $0.16
-
-Realistic with some experimentation: $1-2 total
-```
-
-**Worth it?** YES - Much better quality, faster summaries
+**Issue: AI analysis fails**
+- Solution: Check API key, check internet connection, check API quota
 
 ---
 
-## ⏰ COMPLETE TIMELINE
+## Educational Value
 
-### **Day 1 (4 hours)**
-- ✅ Morning: Data inspection (2 hours)
-  - Sample files, understand structure
-  - Check data quality, missing values
-  - Calculate statistics
-- ✅ Afternoon: Data parsing (2 hours)
-  - Write parser.py
-  - Parse all 20K JSON → CSV
-  - Clean and validate
+### Learning Objectives
 
-### **Day 2 (5 hours)**
-- ✅ Morning: Create embeddings (3 hours)
-  - Install sentence-transformers
-  - Generate vectors for all papers
-  - Save to numpy file
-- ✅ Afternoon: Load to ChromaDB (2 hours)
-  - Setup ChromaDB
-  - Load embeddings + metadata
-  - Test search functionality
+**Part 1: Data Engineering**
+- Parse large JSON datasets
+- Clean and validate data
+- Handle missing values
+- Export to efficient formats (Parquet)
+- Create data hierarchies
 
-### **Day 3 (5 hours)**
-- ✅ Morning: Implement search (2 hours)
-  - Write search function
-  - Add relevance scoring
-  - Test on sample queries
-- ✅ Afternoon: Add stance detection (3 hours)
-  - Setup DeBERTa NLI
-  - Test on sample papers
-  - Optimize for speed
+**Part 2: NLP & Vector Search**
+- Generate text embeddings
+- Build vector databases
+- Implement semantic search
+- Understand similarity metrics
 
-### **Day 4 (5 hours)**
-- ✅ Morning: Build citation network (3 hours)
-  - Write graph builder
-  - Add nodes and edges
-  - Calculate network stats
-- ✅ Afternoon: Setup LLM summarization (2 hours)
-  - Get OpenAI API key
-  - Write summarizer function
-  - Test summaries
+**Part 3: AI Integration**
+- Use LLM APIs (Anthropic Claude)
+- Implement stance detection
+- Build similarity networks
+- Analyze research communities
 
-### **Day 5 (5 hours)**
-- ✅ All day: Build Streamlit dashboard
-  - Create search interface
-  - Add graph visualization (Pyvis)
-  - Test locally
+**Part 4: Full-Stack Development**
+- Build interactive dashboards
+- Create visualizations
+- Optimize performance
+- Deploy web applications
 
-### **Day 6 (5 hours)**
-- ✅ Morning: Add features (3 hours)
-  - Summary panel
-  - Report generation
-  - Export functionality
-- ✅ Afternoon: Polish UI (2 hours)
-  - Fix bugs
-  - Improve layout
-  - Add loading indicators
+### Skills Demonstrated
 
-### **Day 7 (4 hours)**
-- ✅ Morning: Deploy (2 hours)
-  - Push to GitHub
-  - Deploy to Streamlit Cloud
-  - Test with 5 users
-- ✅ Afternoon: Documentation & video (2 hours)
-  - Record demo video
-  - Write README
-  - Prepare submission
+**Technical Skills**:
+- Python programming (advanced)
+- Data processing (Pandas, NumPy)
+- Machine learning (embeddings, transformers)
+- API integration (Anthropic Claude)
+- Web development (Streamlit)
+- Database systems (ChromaDB)
+- Graph analysis (NetworkX)
 
-**Total**: 33 hours over 7 days
+**Soft Skills**:
+- Problem decomposition
+- Performance optimization
+- Documentation writing
+- Code organization
+- Project management
 
 ---
 
-## 🎯 DELIVERABLES CHECKLIST
+## References & Resources
 
-### **Code**
-- [ ] `src/data/parser.py` - Parse JSON files
-- [ ] `src/data/embeddings.py` - Create embeddings
-- [ ] `src/search/load_vector_db.py` - Load to ChromaDB
-- [ ] `src/search/vector_search.py` - Semantic search function
-- [ ] `src/search/stance_detection.py` - NLI stance detection
-- [ ] `src/graph/builder.py` - Build citation network
-- [ ] `src/llm/summarizer.py` - GPT summarization
-- [ ] `dashboard/app.py` - Main Streamlit app
-- [ ] `requirements.txt` - All dependencies
-
-### **Data**
-- [ ] `data/processed/papers.csv` - Cleaned papers
-- [ ] `data/embeddings/paper_embeddings.npy` - Vectors
-- [ ] `data/vector_db/` - ChromaDB files
-
-### **Documentation**
-- [ ] `README.md` - Project overview
-- [ ] `docs/COMPLETE_GUIDE.md` - This file
-- [ ] Code comments and docstrings
-
-### **Deployment**
-- [ ] Working app (local or deployed)
-- [ ] Tested with 5 users
-- [ ] No critical bugs
-
-### **Presentation**
-- [ ] 15-minute video
-- [ ] Google Drive folder
-- [ ] Posted in Discord
-
----
-
-## 🚨 COMMON ISSUES & SOLUTIONS
-
-### **Issue: Out of memory**
-```python
-# Solution: Process in batches
-for i in range(0, len(papers), 100):
-    batch = papers[i:i+100]
-    embeddings = model.encode(batch)
-```
-
-### **Issue: NLI model is slow**
-```python
-# Solution 1: Only analyze top 20 papers
-papers = papers[:20]
-
-# Solution 2: Use GPU
-device = 0 if torch.cuda.is_available() else -1
-nli = pipeline(..., device=device)
-
-# Solution 3: Reduce model size
-nli = pipeline(..., model="distilbert-base-uncased-mnli")  # Smaller model
-```
-
-### **Issue: Streamlit Cloud times out**
-```python
-# Solution: Cache everything
-@st.cache_resource
-def load_everything():
-    # Load models, db, etc.
-    return models
-
-# Use cached version
-models = load_everything()
-```
-
-### **Issue: ChromaDB not found**
-```python
-# Make sure vector_db folder is included
-# Check .gitignore doesn't exclude it
-```
-
-### **Issue: OpenAI API costs too much**
-```python
-# Solution: Switch to Ollama (free)
-from ollama import chat
-
-response = chat(model="llama3.1", messages=[...])
-```
-
----
-
-## 📚 REFERENCES & RESOURCES
-
-### **Tools Documentation**
-- **sentence-transformers**: https://www.sbert.net/
+### Documentation
+- **Sentence Transformers**: https://www.sbert.net/
 - **ChromaDB**: https://docs.trychroma.com/
-- **DeBERTa NLI**: https://huggingface.co/microsoft/deberta-v3-base-mnli
-- **OpenAI**: https://platform.openai.com/docs
+- **Anthropic Claude**: https://docs.anthropic.com/
 - **Streamlit**: https://docs.streamlit.io/
-- **NetworkX**: https://networkx.org/documentation/stable/
-- **Pyvis**: https://pyvis.readthedocs.io/
+- **Plotly**: https://plotly.com/python/
+- **NetworkX**: https://networkx.org/
 
-### **Learning Resources**
-- Vector Search: https://www.pinecone.io/learn/vector-search/
-- NLI Explained: https://huggingface.co/tasks/text-classification#natural-language-inference
-- RAG Tutorial: https://python.langchain.com/docs/tutorials/rag/
+### Similar Projects
+- **Connected Papers**: https://www.connectedpapers.com/
+- **Semantic Scholar**: https://www.semanticscholar.org/
+- **Research Rabbit**: https://www.researchrabbit.ai/
 
-### **Similar Projects**
-- Connected Papers: https://www.connectedpapers.com/
-- Semantic Scholar: https://www.semanticscholar.org/
-- Research Rabbit: https://www.researchrabbit.ai/
-
----
-
-## 🎓 KEY CONCEPTS EXPLAINED
-
-### **What is an Embedding?**
-A numerical representation of text that captures meaning:
-```
-"cat" → [0.2, 0.8, 0.1, ..., 0.5]
-"dog" → [0.3, 0.7, 0.2, ..., 0.4]  (similar to cat!)
-"car" → [0.9, 0.1, 0.8, ..., 0.2]  (very different)
-```
-
-### **What is Cosine Similarity?**
-Measures angle between two vectors:
-```
-similarity = dot(A, B) / (||A|| × ||B||)
-
-Range: -1 to 1
-- 1.0 = Same direction (very similar)
-- 0.0 = Perpendicular (unrelated)
-- -1.0 = Opposite (very different)
-```
-
-### **What is NLI (Natural Language Inference)?**
-Given two sentences, determine if first entails/contradicts/neutral to second:
-```
-Premise: "A dog is running"
-Hypothesis: "An animal is moving" → ENTAILMENT ✅
-Hypothesis: "A cat is sleeping" → CONTRADICTION ❌
-Hypothesis: "The sky is blue" → NEUTRAL ⚪
-```
-
-### **What is a Vector Database?**
-Database optimized for finding similar vectors fast:
-```
-Regular DB: "Find WHERE name = 'John'"
-Vector DB: "Find 10 most similar vectors to [0.8, 0.9, ...]"
-
-Uses HNSW (graph-based algorithm) to skip most vectors
-```
+### Academic Papers
+- SBERT: "Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks"
+- HNSW: "Efficient and robust approximate nearest neighbor search"
+- Transformers: "Attention Is All You Need"
 
 ---
 
-## ✅ SUCCESS CRITERIA
+## Project Timeline
 
-### **Must Have (Required)**
-- ✅ All 20K papers parsed and searchable
-- ✅ Semantic search works (finds relevant papers)
-- ✅ Interactive graph displays
-- ✅ Can click nodes to see details
-- ✅ Summaries work (with LLM)
+**Day 1-2: Data Preparation** (8-10 hours)
+- Parse JSON files
+- Clean and validate
+- Extract subject areas
+- Create hierarchy
+- Generate tree map data
 
-### **Nice to Have (Bonus)**
-- ⭐ Stance detection (green/red edges)
-- ⭐ Report generation
-- ⭐ Deployed online (not just localhost)
-- ⭐ Fast (<5 sec total per search)
-- ⭐ Professional UI
+**Day 3-4: Embeddings & Search** (6-8 hours)
+- Generate embeddings
+- Build vector database
+- Test semantic search
+- Optimize performance
 
-### **Grading Alignment**
+**Day 5-6: AI & Network** (8-10 hours)
+- Integrate Claude API
+- Implement stance detection
+- Build similarity network
+- Timeline analysis
 
-**Completeness (Required):**
-- ✅ Data Module: Parsing, cleaning, EDA
-- ✅ AI Module: Embeddings, search, NLI, LLM
-- ✅ Visualization: Dashboard, graph, charts
+**Day 7-8: Dashboard** (8-10 hours)
+- Build Streamlit app
+- Create visualizations
+- Add filters and export
+- Polish UI/UX
 
-**Interestingness (Bonus Points):**
-- ⭐ Effort: Processing 20K papers, multiple AI models
-- ⭐ Creativity: Stance detection, context-aware summaries
-- ⭐ Execution: Working deployment, polished UI
-- ⭐ Technical Quality: Modern NLP, efficient search
-- ⭐ Real Impact: Actually useful for researchers
+**Day 9: Deploy & Document** (4-6 hours)
+- Deploy to Streamlit Cloud
+- Write documentation
+- Final testing
+- Prepare presentation
+
+**Total**: 35-45 hours over 9 days
 
 ---
 
-## 🎬 END
+## Success Metrics
 
-**This document contains EVERYTHING you need to understand and build this project.**
+### Must Have ✅
+- [x] All 19,523 papers parsed and searchable
+- [x] Semantic search working (<1 second)
+- [x] AI summaries and stance detection (10-12 seconds)
+- [x] Interactive tree map visualization
+- [x] Timeline analysis with charts
+- [x] Color-coded subject classification
+- [x] Export to CSV
 
-When starting a new conversation with Claude, share this document and say:
-> "Read COMPLETE_GUIDE.md - this explains our entire project. Help me implement [specific phase]."
+### Achieved ✅
+- [x] Pre-computed tree map (instant load)
+- [x] Summary caching (persistent)
+- [x] Optimized LLM prompts (30-40% faster)
+- [x] Modern UI/UX design
+- [x] Multi-filter system
+- [x] Clean codebase (715 lines)
+- [x] Comprehensive documentation
 
-**Good luck!** 🚀
+---
+
+## Conclusion
+
+This project demonstrates a complete AI-powered research assistant pipeline:
+
+**Data Engineering**: Parsed 20K+ JSON files → cleaned dataset → efficient storage
+
+**AI/ML**: Embeddings → vector search → LLM analysis → stance detection
+
+**Visualization**: Tree map → timeline → subject classification → color coding
+
+**Web Development**: Interactive dashboard → real-time search → export capabilities
+
+**Production Ready**: Optimized performance → caching → deployment guide
+
+**Educational**: Clear structure → comprehensive docs → reproducible workflow
+
+The system successfully combines modern NLP, vector databases, LLM APIs, and interactive visualization to solve a real research problem.
+
+---
+
+**Built with ❤️ for the research community**
+
+*Data Science Course Project - Chulalongkorn University 2024*
