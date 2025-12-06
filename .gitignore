@@ -40,8 +40,9 @@ lib64/
 # Data files (large)
 data/
 !data/.gitkeep
-data/processed/*.csv
-data/processed/*.parquet
+!data/processed/
+data/embeddings/
+data/vector_db/
 data/features/*.npy
 data/features/*.pkl
 data/models/*.pkl
