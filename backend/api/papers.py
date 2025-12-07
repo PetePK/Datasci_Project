@@ -18,6 +18,60 @@ def get_app_state():
     from main import get_app_state
     return get_app_state()
 
+@router.get("", response_model=dict)
+async def get_all_papers(
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0)
+):
+    """
+    Get all papers with pagination
+    
+    Args:
+        limit: Number of papers to return (1-100)
+        offset: Number of papers to skip
+        
+    Returns:
+        Dict with results, total, and has_more
+    """
+    try:
+        state = get_app_state()
+        papers_df = state.get('papers_df')
+        
+        if papers_df is None:
+            raise HTTPException(status_code=500, detail="Server not ready")
+        
+        # Get paginated subset
+        total = len(papers_df)
+        papers_subset = papers_df.iloc[offset:offset + limit]
+        
+        results = []
+        for _, paper in papers_subset.iterrows():
+            results.append({
+                "paper": {
+                    "id": str(paper.get("id", "")),
+                    "title": str(paper.get("title", "")),
+                    "abstract": str(paper.get("abstract", "")),
+                    "year": int(paper.get("year", 2020)),
+                    "citation_count": int(paper.get("citation_count", 0)),
+                    "num_authors": int(paper.get("num_authors", 0)),
+                    "doi": paper.get("doi"),
+                    "subject_areas": paper.get("subject_areas", []) if isinstance(paper.get("subject_areas"), list) else []
+                },
+                "relevance": 1.0  # No relevance score for browse-all
+            })
+        
+        return {
+            "results": results,
+            "total": total,
+            "has_more": (offset + limit) < total
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Get all papers failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.get("/{paper_id}", response_model=PaperDetail)
 async def get_paper(paper_id: str):
     """

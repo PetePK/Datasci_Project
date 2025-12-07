@@ -15,9 +15,13 @@ AI-powered platform for exploring 19,523 academic research papers from Scopus (2
 
 **Endpoints**:
 - `POST /api/search/` - Semantic paper search
-- `POST /api/analyze/` - AI paper analysis
+- `GET /api/categories/{name}` - Category-based filtering
+- `POST /api/insights/search` - AI-powered search insights
+- `GET /api/recommendations` - Research recommendations
 - `GET /api/stats/` - Statistics
 - `GET /api/stats/treemap` - Treemap data
+- `GET /api/stats/trends/{topic}` - Publication trends (Level 1 topics)
+- `GET /api/stats/citation-analysis/{topic}` - Citation analysis (Level 2 topics)
 - `GET /api/papers/{id}` - Paper details
 
 ### Frontend (Next.js)
@@ -28,8 +32,14 @@ AI-powered platform for exploring 19,523 academic research papers from Scopus (2
 - **Search**: Embedded in navigation bar
 
 **Pages**:
-- `/` - Interactive treemap browse
-- `/search?q=...` - Search results
+
+- `/` - Interactive treemap with drill-down navigation
+  - Level 1 topics: Show publication trends over time
+  - Level 2 topics: Show citation analysis
+  - Papers load on demand when clicking topics
+- `/search?q=...` - Search results with AI insights
+  - Papers display immediately
+  - AI insights load asynchronously (~5-7s)
 
 ## Data Pipeline
 
@@ -56,18 +66,31 @@ AI-powered platform for exploring 19,523 academic research papers from Scopus (2
 
 ## Key Features
 
-### 1. Semantic Search
+### 1. Semantic Search with AI Insights
+
 - Type query in nav bar → auto-redirect to `/search?q=...`
 - Vector similarity search (threshold: 0.3)
 - Results sorted by relevance (47-48% typical)
 - Shows: title, abstract, year, citations, authors, match %
+- **AI Insights** (powered by Claude 3.5 Haiku):
+  - Relevance summary of search results
+  - Key papers identification
+  - Emerging research directions
+  - Search refinement tips
+  - Loads asynchronously (~5-7s) without blocking results
 
-### 2. Interactive Treemap
+### 2. Interactive Treemap with Trend Visualizations
+
 - Hierarchical visualization of research categories
 - 7 main areas: Medicine, Life Sciences, CS/AI, Engineering, Materials, Physics, Environment
 - 85 total nodes (including "Other" subcategories)
-- Drill-down navigation with Back button
-- Click leaf nodes → show papers below
+- **Smart drill-down navigation**:
+  - Click topic → Treemap zooms in
+  - **Level 1 topics**: Show publication trends over time (2018-2023 line chart)
+  - **Level 2 topics**: Show citation analysis (top 20 papers bar chart)
+  - Papers load on demand below visualizations
+  - Back button to navigate up the hierarchy
+- **Lazy loading**: Homepage loads only treemap initially for fast performance
 
 ### 3. Data Quality
 - **Deduplication**: By title similarity
@@ -143,14 +166,42 @@ cd frontend && pnpm dev
 - **UI**: Professional, modern, academic feel
 - **Consistency**: Used across nav, buttons, headers, cards
 
+## Recent Improvements (Dec 2024)
+
+1. **Category Filtering** - Click treemap categories to filter papers (not semantic search)
+   - Word-boundary regex matching prevents false positives ("Physics" won't match "Biophysics")
+   - Recursive subcategory inclusion
+   - Returns 644 papers for "Immunology" vs searching all papers
+
+2. **Pagination** - Load 20 papers at a time with "Load More" button
+   - Improves initial page load time
+   - Smooth async loading (300ms delay for UX)
+   - Shows remaining paper count
+
+3. **Code Cleanup** - Removed 7 dead code files
+   - Deleted test scripts (test_db.py, test_search.py, test_search_fixed.py)
+   - Removed debug scripts (compare_data.py, test_dbscan.py, test_queries.py)
+   - **Security fix**: Removed hardcoded API keys (create_env.py)
+
+4. **Navigation Improvements** - Simplified UI
+   - Search bar embedded in navigation
+   - Removed unused menu items (Home, Analytics)
+   - Added back button beside search results heading
+
+5. **Treemap Enhancements** - Better visualization
+   - Index-based color palette (40+ colors)
+   - Zoom into categories while showing papers
+   - Fixed schema validation errors
+
 ## Future Enhancements
 
-1. **Paper Details Page** - Full metadata, citations, similar papers
-2. **Advanced Filters** - Year range, citation count, subject area
-3. **Export** - CSV/JSON download of search results
-4. **Analytics Dashboard** - Trends, patterns, insights
-5. **User Accounts** - Save searches, favorites, notes
-6. **Citation Network** - Interactive graph visualization
+1. **"Other" Subcategories** - Papers not in specific topics → "{Category} - Other"
+2. **Paper Details Page** - Full metadata, citations, similar papers
+3. **Advanced Filters** - Year range, citation count, subject area
+4. **Export** - CSV/JSON download of search results
+5. **Analytics Dashboard** - Trends, patterns, insights
+6. **User Accounts** - Save searches, favorites, notes
+7. **Citation Network** - Interactive graph visualization
 
 ## Technical Decisions
 

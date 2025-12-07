@@ -80,7 +80,8 @@ def search_papers(query: str, n_results: int = 20, vector_db: dict = None) -> di
         n_results=n_results
     )
 
-    logger.info(f"Search: '{query[:50]}...' -> {len(results['ids'][0])} results")
+    # DISABLED: query_preview = query[:50].replace(':', '-') if len(query) > 50 else query.replace(':', '-')
+    # DISABLED: logger.info(f"Search '{query_preview}' -> {len(results['ids'][0])} results")
 
     return {
         "ids": results["ids"][0] if results["ids"] else [],

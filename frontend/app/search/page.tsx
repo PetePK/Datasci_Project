@@ -3,6 +3,11 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
+import PaperCard from '@/components/PaperCard'
+import FilterPanel from '@/components/FilterPanel'
+import InsightsCard, { SearchInsights } from '@/components/InsightsCard'
+
+type SortOption = 'citations' | 'year' | 'relevance'
 
 export default function SearchPage() {
   const searchParams = useSearchParams()
@@ -11,8 +16,21 @@ export default function SearchPage() {
 
   const [query, setQuery] = useState(initialQuery)
   const [results, setResults] = useState<any[]>([])
+  const [displayedResults, setDisplayedResults] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // LLM Insights State
+  const [insights, setInsights] = useState<SearchInsights | null>(null)
+  const [insightsLoading, setInsightsLoading] = useState(false)
+  const [insightsError, setInsightsError] = useState<string | null>(null)
+
+  // Filter & Sort State
+  const [selectedSubjects, setSelectedSubjects] = useState<string[]>([])
+  const [yearRange, setYearRange] = useState<[number, number]>([2018, 2023])
+  const [sortBy, setSortBy] = useState<SortOption>('relevance')
+  const [showFilters, setShowFilters] = useState(true)
+  const [availableSubjects, setAvailableSubjects] = useState<string[]>([])
 
   // Auto-search when URL has query parameter
   useEffect(() => {
@@ -26,6 +44,7 @@ export default function SearchPage() {
 
     setLoading(true)
     setError(null)
+    setInsights(null) // Reset insights
 
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
@@ -50,6 +69,11 @@ export default function SearchPage() {
       const data = await response.json()
       setResults(data.results || [])
 
+      // Generate insights asynchronously (don't wait)
+      if (data.results && data.results.length > 0) {
+        generateInsights(searchQuery, data.results)
+      }
+
     } catch (err: any) {
       console.error('Search error:', err)
       setError(err.message || 'Search failed')
@@ -58,9 +82,125 @@ export default function SearchPage() {
     }
   }
 
+  // Generate AI insights asynchronously
+  const generateInsights = async (searchQuery: string, searchResults: any[]) => {
+    setInsightsLoading(true)
+    setInsightsError(null)
+
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+
+      // Prepare results for API (only send necessary fields)
+      const resultsForAPI = searchResults.slice(0, 15).map(r => ({
+        title: r.paper?.title || '',
+        year: r.paper?.year || 0,
+        citations: r.paper?.citation_count || 0,
+      }))
+
+      const response = await fetch(`${apiUrl}/api/insights/search`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          query: searchQuery,
+          results: resultsForAPI,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to generate insights')
+      }
+
+      const data = await response.json()
+
+      if (data.success && data.data) {
+        setInsights(data.data)
+      } else {
+        throw new Error(data.error || 'Unknown error')
+      }
+
+    } catch (err: any) {
+      console.error('Insights error:', err)
+      setInsightsError(err.message || 'Failed to generate insights')
+    } finally {
+      setInsightsLoading(false)
+    }
+  }
+
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault()
     performSearch(query)
+  }
+
+  // Extract unique subjects from results
+  useEffect(() => {
+    if (results.length > 0) {
+      const subjects = new Set<string>()
+      results.forEach(result => {
+        const areas = result.paper.subject_areas || []
+        areas.forEach((area: string) => subjects.add(area))
+      })
+      setAvailableSubjects(Array.from(subjects).sort())
+    }
+  }, [results])
+
+  // Update displayed results when filters or sort changes
+  useEffect(() => {
+    if (results.length === 0) {
+      setDisplayedResults([])
+      return
+    }
+
+    let filtered = [...results]
+
+    // Subject filters - AND logic
+    if (selectedSubjects.length > 0) {
+      filtered = filtered.filter(result => {
+        const paperSubjects = result.paper.subject_areas || []
+        return selectedSubjects.every(selectedSubject =>
+          paperSubjects.some((paperSubject: string) =>
+            paperSubject.toLowerCase().includes(selectedSubject.toLowerCase())
+          )
+        )
+      })
+    }
+
+    // Year range filter
+    filtered = filtered.filter(result =>
+      result.paper.year >= yearRange[0] && result.paper.year <= yearRange[1]
+    )
+
+    // Apply sorting
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'citations':
+          return b.paper.citation_count - a.paper.citation_count
+        case 'year':
+          return b.paper.year - a.paper.year
+        case 'relevance':
+          return (b.relevance || 0) - (a.relevance || 0)
+        default:
+          return 0
+      }
+    })
+
+    setDisplayedResults(filtered)
+  }, [results, selectedSubjects, yearRange, sortBy])
+
+  // Toggle subject filter
+  const toggleSubject = (subject: string) => {
+    setSelectedSubjects(prev =>
+      prev.includes(subject)
+        ? prev.filter(s => s !== subject)
+        : [...prev, subject]
+    )
+  }
+
+  // Clear all filters
+  const clearFilters = () => {
+    setSelectedSubjects([])
+    setYearRange([2018, 2023])
   }
 
   return (
@@ -88,7 +228,7 @@ export default function SearchPage() {
       </div>
 
       {/* Search Form */}
-      <form onSubmit={handleSearch} className="mb-8">
+      <form onSubmit={handleSearch} className="mb-6">
         <div className="flex gap-2">
           <input
             type="text"
@@ -129,59 +269,66 @@ export default function SearchPage() {
       {/* Results */}
       {!loading && results.length > 0 && (
         <div>
+          {/* Filter Panel and AI Insights - Side by Side */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            {/* Filter Panel - Left Side */}
+            <div>
+              <FilterPanel
+                selectedSubjects={selectedSubjects}
+                yearRange={yearRange}
+                sortBy={sortBy}
+                showFilters={showFilters}
+                availableSubjects={availableSubjects}
+                onToggleSubject={toggleSubject}
+                onYearRangeChange={setYearRange}
+                onSortByChange={setSortBy}
+                onToggleShowFilters={() => setShowFilters(!showFilters)}
+                onClearFilters={clearFilters}
+              />
+            </div>
+
+            {/* AI Insights - Right Side */}
+            <div>
+              <InsightsCard
+                insights={insights}
+                loading={insightsLoading}
+                error={insightsError}
+              />
+            </div>
+          </div>
+
           <div className="mb-4 flex items-center justify-between">
             <p className="text-lg font-semibold">
-              Found {results.length} papers
+              Sorted by {sortBy === 'citations' ? '⭐ Citations' : sortBy === 'year' ? '📅 Year' : '🎯 Relevance'}
+              {selectedSubjects.length > 0 && (
+                <> • Filtered by: {selectedSubjects.join(', ')}</>
+              )}
             </p>
           </div>
 
           <div className="space-y-4">
-            {results.map((result, idx) => (
-              <div
+            {displayedResults.map((result, idx) => (
+              <PaperCard
                 key={result.paper.id}
-                className="p-6 bg-white rounded-lg border-2 border-gray-200 hover:border-purple-500 hover:shadow-lg transition-all group"
-              >
-                <div className="flex items-start justify-between gap-4 mb-3">
-                  <div className="flex items-start gap-3 flex-1">
-                    <span className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 text-white rounded-full flex items-center justify-center font-bold text-sm">
-                      {idx + 1}
-                    </span>
-                    <h3 className="text-lg font-semibold text-gray-900 group-hover:text-purple-600 transition-colors flex-1">
-                      {result.paper.title}
-                    </h3>
-                  </div>
-                  <span className="flex-shrink-0 text-sm font-bold text-white bg-gradient-to-r from-green-500 to-emerald-500 px-3 py-1 rounded-full shadow-md">
-                    {(result.relevance * 100).toFixed(0)}% match
-                  </span>
-                </div>
-
-                <p className="text-sm text-gray-600 mb-4 line-clamp-3 leading-relaxed">
-                  {result.paper.abstract}
-                </p>
-
-                <div className="flex items-center gap-4 text-sm">
-                  <span className="flex items-center gap-1 text-gray-700 font-medium">
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                    {result.paper.year}
-                  </span>
-                  <span className="flex items-center gap-1 text-amber-600 font-medium">
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                    </svg>
-                    {result.paper.citation_count} citations
-                  </span>
-                  <span className="flex items-center gap-1 text-gray-600">
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                    </svg>
-                    {result.paper.num_authors} authors
-                  </span>
-                </div>
-              </div>
+                paper={result.paper}
+                relevance={result.relevance}
+                index={idx}
+                showRelevance={true}  // Show relevance for search results
+              />
             ))}
           </div>
+
+          {/* No results after filtering */}
+          {displayedResults.length === 0 && results.length > 0 && (
+            <div className="text-center py-12 bg-yellow-50 rounded-lg border-2 border-yellow-200">
+              <p className="text-yellow-800 font-medium mb-2">
+                No papers match your current filters
+              </p>
+              <p className="text-sm text-yellow-600">
+                Try adjusting your filters or clearing them to see more results
+              </p>
+            </div>
+          )}
         </div>
       )}
 

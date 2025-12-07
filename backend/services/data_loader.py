@@ -67,7 +67,16 @@ def load_metadata() -> dict:
     treemap_path = PROCESSED_DIR / "treemap_data.json"
     if treemap_path.exists():
         with open(treemap_path, 'r', encoding='utf-8') as f:
-            metadata['treemap_data'] = json.load(f)
+            treemap_data = json.load(f)
+        
+        # Merge subject_groups from subject_hierarchy into treemap_data
+        # This allows the categories API to know about subcategories
+        if 'subject_hierarchy' in metadata:
+            subject_groups = metadata['subject_hierarchy'].get('subject_groups', {})
+            treemap_data['subject_groups'] = subject_groups
+            logger.info(f"Added {len(subject_groups)} subject groups to treemap data")
+        
+        metadata['treemap_data'] = treemap_data
         logger.info("Loaded treemap data")
 
     # Dataset metadata

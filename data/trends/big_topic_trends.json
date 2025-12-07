@@ -1,0 +1,218 @@
+[
+  {
+    "year":2018,
+    "topic":"Computer Science & AI",
+    "papers":137,
+    "citations":607
+  },
+  {
+    "year":2018,
+    "topic":"Engineering",
+    "papers":65,
+    "citations":1799
+  },
+  {
+    "year":2018,
+    "topic":"Environmental Science",
+    "papers":55,
+    "citations":1398
+  },
+  {
+    "year":2018,
+    "topic":"Life Sciences",
+    "papers":272,
+    "citations":5176
+  },
+  {
+    "year":2018,
+    "topic":"Materials & Chemistry",
+    "papers":150,
+    "citations":4462
+  },
+  {
+    "year":2018,
+    "topic":"Medicine & Health",
+    "papers":394,
+    "citations":8833
+  },
+  {
+    "year":2019,
+    "topic":"Computer Science & AI",
+    "papers":235,
+    "citations":1998
+  },
+  {
+    "year":2019,
+    "topic":"Engineering",
+    "papers":74,
+    "citations":1033
+  },
+  {
+    "year":2019,
+    "topic":"Environmental Science",
+    "papers":65,
+    "citations":781
+  },
+  {
+    "year":2019,
+    "topic":"Life Sciences",
+    "papers":269,
+    "citations":4063
+  },
+  {
+    "year":2019,
+    "topic":"Materials & Chemistry",
+    "papers":171,
+    "citations":3726
+  },
+  {
+    "year":2019,
+    "topic":"Medicine & Health",
+    "papers":464,
+    "citations":8373
+  },
+  {
+    "year":2020,
+    "topic":"Computer Science & AI",
+    "papers":169,
+    "citations":1071
+  },
+  {
+    "year":2020,
+    "topic":"Engineering",
+    "papers":101,
+    "citations":1364
+  },
+  {
+    "year":2020,
+    "topic":"Environmental Science",
+    "papers":95,
+    "citations":1536
+  },
+  {
+    "year":2020,
+    "topic":"Life Sciences",
+    "papers":292,
+    "citations":3540
+  },
+  {
+    "year":2020,
+    "topic":"Materials & Chemistry",
+    "papers":176,
+    "citations":2763
+  },
+  {
+    "year":2020,
+    "topic":"Medicine & Health",
+    "papers":485,
+    "citations":8740
+  },
+  {
+    "year":2021,
+    "topic":"Computer Science & AI",
+    "papers":154,
+    "citations":449
+  },
+  {
+    "year":2021,
+    "topic":"Engineering",
+    "papers":111,
+    "citations":2238
+  },
+  {
+    "year":2021,
+    "topic":"Environmental Science",
+    "papers":119,
+    "citations":1735
+  },
+  {
+    "year":2021,
+    "topic":"Life Sciences",
+    "papers":357,
+    "citations":4700
+  },
+  {
+    "year":2021,
+    "topic":"Materials & Chemistry",
+    "papers":220,
+    "citations":2638
+  },
+  {
+    "year":2021,
+    "topic":"Medicine & Health",
+    "papers":521,
+    "citations":4716
+  },
+  {
+    "year":2022,
+    "topic":"Computer Science & AI",
+    "papers":216,
+    "citations":483
+  },
+  {
+    "year":2022,
+    "topic":"Engineering",
+    "papers":119,
+    "citations":1018
+  },
+  {
+    "year":2022,
+    "topic":"Environmental Science",
+    "papers":133,
+    "citations":866
+  },
+  {
+    "year":2022,
+    "topic":"Life Sciences",
+    "papers":383,
+    "citations":1516
+  },
+  {
+    "year":2022,
+    "topic":"Materials & Chemistry",
+    "papers":240,
+    "citations":1425
+  },
+  {
+    "year":2022,
+    "topic":"Medicine & Health",
+    "papers":621,
+    "citations":2553
+  },
+  {
+    "year":2023,
+    "topic":"Computer Science & AI",
+    "papers":149,
+    "citations":81
+  },
+  {
+    "year":2023,
+    "topic":"Engineering",
+    "papers":83,
+    "citations":102
+  },
+  {
+    "year":2023,
+    "topic":"Environmental Science",
+    "papers":99,
+    "citations":92
+  },
+  {
+    "year":2023,
+    "topic":"Life Sciences",
+    "papers":304,
+    "citations":289
+  },
+  {
+    "year":2023,
+    "topic":"Materials & Chemistry",
+    "papers":175,
+    "citations":207
+  },
+  {
+    "year":2023,
+    "topic":"Medicine & Health",
+    "papers":399,
+    "citations":356
+  }
+]

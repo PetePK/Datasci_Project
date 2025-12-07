@@ -1,0 +1,322 @@
+{
+  "Infectious Diseases": [
+    {
+      "year": 2018,
+      "paper_count": 86,
+      "total_citations": 1176
+    },
+    {
+      "year": 2019,
+      "paper_count": 105,
+      "total_citations": 1191
+    },
+    {
+      "year": 2020,
+      "paper_count": 119,
+      "total_citations": 1508
+    },
+    {
+      "year": 2021,
+      "paper_count": 136,
+      "total_citations": 1222
+    },
+    {
+      "year": 2022,
+      "paper_count": 179,
+      "total_citations": 785
+    },
+    {
+      "year": 2023,
+      "paper_count": 93,
+      "total_citations": 76
+    }
+  ],
+  "Organic Chemistry": [
+    {
+      "year": 2018,
+      "paper_count": 69,
+      "total_citations": 2129
+    },
+    {
+      "year": 2019,
+      "paper_count": 93,
+      "total_citations": 1722
+    },
+    {
+      "year": 2020,
+      "paper_count": 87,
+      "total_citations": 1575
+    },
+    {
+      "year": 2021,
+      "paper_count": 109,
+      "total_citations": 1180
+    },
+    {
+      "year": 2022,
+      "paper_count": 143,
+      "total_citations": 881
+    },
+    {
+      "year": 2023,
+      "paper_count": 96,
+      "total_citations": 81
+    }
+  ],
+  "Biochemistry": [
+    {
+      "year": 2018,
+      "paper_count": 91,
+      "total_citations": 2056
+    },
+    {
+      "year": 2019,
+      "paper_count": 81,
+      "total_citations": 1562
+    },
+    {
+      "year": 2020,
+      "paper_count": 93,
+      "total_citations": 1489
+    },
+    {
+      "year": 2021,
+      "paper_count": 122,
+      "total_citations": 1173
+    },
+    {
+      "year": 2022,
+      "paper_count": 104,
+      "total_citations": 437
+    },
+    {
+      "year": 2023,
+      "paper_count": 105,
+      "total_citations": 103
+    }
+  ],
+  "Molecular Biology": [
+    {
+      "year": 2018,
+      "paper_count": 59,
+      "total_citations": 1080
+    },
+    {
+      "year": 2019,
+      "paper_count": 71,
+      "total_citations": 1117
+    },
+    {
+      "year": 2020,
+      "paper_count": 84,
+      "total_citations": 1194
+    },
+    {
+      "year": 2021,
+      "paper_count": 87,
+      "total_citations": 1752
+    },
+    {
+      "year": 2022,
+      "paper_count": 101,
+      "total_citations": 525
+    },
+    {
+      "year": 2023,
+      "paper_count": 98,
+      "total_citations": 95
+    }
+  ],
+  "Analytical Chemistry": [
+    {
+      "year": 2018,
+      "paper_count": 68,
+      "total_citations": 1940
+    },
+    {
+      "year": 2019,
+      "paper_count": 71,
+      "total_citations": 1622
+    },
+    {
+      "year": 2020,
+      "paper_count": 64,
+      "total_citations": 1042
+    },
+    {
+      "year": 2021,
+      "paper_count": 97,
+      "total_citations": 1108
+    },
+    {
+      "year": 2022,
+      "paper_count": 109,
+      "total_citations": 468
+    },
+    {
+      "year": 2023,
+      "paper_count": 71,
+      "total_citations": 100
+    }
+  ],
+  "Pharmacology": [
+    {
+      "year": 2018,
+      "paper_count": 78,
+      "total_citations": 1653
+    },
+    {
+      "year": 2019,
+      "paper_count": 78,
+      "total_citations": 1252
+    },
+    {
+      "year": 2020,
+      "paper_count": 63,
+      "total_citations": 726
+    },
+    {
+      "year": 2021,
+      "paper_count": 79,
+      "total_citations": 619
+    },
+    {
+      "year": 2022,
+      "paper_count": 109,
+      "total_citations": 373
+    },
+    {
+      "year": 2023,
+      "paper_count": 59,
+      "total_citations": 31
+    }
+  ],
+  "Artificial Intelligence": [
+    {
+      "year": 2018,
+      "paper_count": 70,
+      "total_citations": 268
+    },
+    {
+      "year": 2019,
+      "paper_count": 77,
+      "total_citations": 532
+    },
+    {
+      "year": 2020,
+      "paper_count": 57,
+      "total_citations": 375
+    },
+    {
+      "year": 2021,
+      "paper_count": 76,
+      "total_citations": 113
+    },
+    {
+      "year": 2022,
+      "paper_count": 99,
+      "total_citations": 126
+    },
+    {
+      "year": 2023,
+      "paper_count": 84,
+      "total_citations": 24
+    }
+  ],
+  "Immunology": [
+    {
+      "year": 2018,
+      "paper_count": 51,
+      "total_citations": 1213
+    },
+    {
+      "year": 2019,
+      "paper_count": 49,
+      "total_citations": 840
+    },
+    {
+      "year": 2020,
+      "paper_count": 51,
+      "total_citations": 2290
+    },
+    {
+      "year": 2021,
+      "paper_count": 72,
+      "total_citations": 980
+    },
+    {
+      "year": 2022,
+      "paper_count": 107,
+      "total_citations": 497
+    },
+    {
+      "year": 2023,
+      "paper_count": 65,
+      "total_citations": 97
+    }
+  ],
+  "Pollution": [
+    {
+      "year": 2018,
+      "paper_count": 38,
+      "total_citations": 1178
+    },
+    {
+      "year": 2019,
+      "paper_count": 41,
+      "total_citations": 634
+    },
+    {
+      "year": 2020,
+      "paper_count": 67,
+      "total_citations": 1268
+    },
+    {
+      "year": 2021,
+      "paper_count": 77,
+      "total_citations": 1336
+    },
+    {
+      "year": 2022,
+      "paper_count": 86,
+      "total_citations": 762
+    },
+    {
+      "year": 2023,
+      "paper_count": 62,
+      "total_citations": 63
+    }
+  ],
+  "Environmental Engineering": [
+    {
+      "year": 2018,
+      "paper_count": 47,
+      "total_citations": 1219
+    },
+    {
+      "year": 2019,
+      "paper_count": 50,
+      "total_citations": 756
+    },
+    {
+      "year": 2020,
+      "paper_count": 68,
+      "total_citations": 998
+    },
+    {
+      "year": 2021,
+      "paper_count": 68,
+      "total_citations": 1495
+    },
+    {
+      "year": 2022,
+      "paper_count": 79,
+      "total_citations": 752
+    },
+    {
+      "year": 2023,
+      "paper_count": 56,
+      "total_citations": 76
+    }
+  ]
+}

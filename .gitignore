@@ -4,7 +4,6 @@
 # Raw data (too large for git)
 raw_data/
 
-
 # Python
 __pycache__/
 *.py[cod]
@@ -36,18 +35,18 @@ lib64/
 # Jupyter Notebook
 .ipynb_checkpoints
 *.ipynb_checkpoints/
+*.ipynb
 
-# Data files (large)
-data/
-!data/.gitkeep
-!data/processed/
+# Documentation (internal only)
+docs/
+
+# Data files - Push processed data, exclude raw and large files
 data/embeddings/
 data/vector_db/
-data/features/*.npy
-data/features/*.pkl
-data/models/*.pkl
-data/models/*.pt
-data/models/vector_db/
+data/citation_graph/
+data/models/
+data/llm_cache.json
+data/query_suggestions.json
 
 
 
@@ -68,6 +67,10 @@ dist/
 # Environment variables
 .env
 .env.local
+.env*.local
+*.env
+
+# API Keys
 
 # IDE
 .vscode/

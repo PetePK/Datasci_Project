@@ -5,15 +5,27 @@ Wraps existing Streamlit logic into REST API endpoints
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 import logging
+import traceback as tb
+import sys
+import os
+from dotenv import load_dotenv
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
+# Load environment variables
+load_dotenv()
+
+# Configure logging - avoid file handlers on Windows
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[logging.StreamHandler()]  # Only use console, no file handlers
+)
 logger = logging.getLogger(__name__)
 
-# Import API routers (will create these next)
-from api import search, analyze, stats, papers, categories
+# Import API routers
+from api import search, stats, papers, categories, insights, recommendations
 
 # Global state for models and data
 app_state = {}
@@ -83,10 +95,35 @@ app.add_middleware(
 
 # Include API routers
 app.include_router(search.router, prefix="/api/search", tags=["search"])
-app.include_router(analyze.router, prefix="/api/analyze", tags=["analyze"])
 app.include_router(stats.router, prefix="/api/stats", tags=["stats"])
 app.include_router(papers.router, prefix="/api/papers", tags=["papers"])
 app.include_router(categories.router, prefix="/api/categories", tags=["categories"])
+app.include_router(insights.router)  # Uses /api/insights prefix from router
+app.include_router(recommendations.router)  # Uses /api/recommendations prefix from router
+
+# Global exception handler
+@app.exception_handler(Exception)
+async def global_exception_handler(request, exc):
+    """Catch all exceptions and log them"""
+    error_detail = str(exc)
+    error_type = type(exc).__name__
+    
+    # Write detailed error to file
+    try:
+        with open("backend_error.log", "a", encoding="utf-8") as f:
+            f.write(f"\n{'='*80}\n")
+            f.write(f"URL: {request.url}\n")
+            f.write(f"Method: {request.method}\n")
+            f.write(f"Error Type: {error_type}\n")
+            f.write(f"Error: {error_detail}\n")
+            f.write(f"Traceback:\n{tb.format_exc()}\n")
+    except Exception as log_error:
+        print(f"Failed to write log: {log_error}", file=sys.stderr)
+    
+    return JSONResponse(
+        status_code=500,
+        content={"detail": f"[{error_type}] {error_detail}"}
+    )
 
 @app.get("/")
 async def root():

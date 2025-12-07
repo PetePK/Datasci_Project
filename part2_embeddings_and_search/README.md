@@ -1,30 +1,23 @@
-# Part 2: Embeddings & Vector Search
+# Part 2: Vector Search
 
-Generate semantic embeddings and build vector search index.
+Built semantic search using embeddings + ChromaDB.
 
-## Model
-- **Name**: all-MiniLM-L6-v2
-- **Type**: Sentence transformer
-- **Dimensions**: 384
-- **Size**: 80 MB
+## Why Vectors?
 
-## Processing
-1. **Combine Text** - Title + abstract
-2. **Generate Embeddings** - 19,523 papers → 384-dim vectors
-3. **Build Index** - ChromaDB with HNSW algorithm
-4. **Test Search** - Verify semantic similarity
+Traditional keyword search misses semantically similar papers. Vector embeddings capture meaning.
 
-## Output
-- `data/processed/embeddings.npy` - 19,523 × 384 array (29 MB)
-- `data/vector_db/` - ChromaDB persistent storage (294 MB)
+## Model Choice
 
-## Usage
-```bash
-jupyter notebook phase2_embeddings_and_vector_search.ipynb
-```
+Tested 3 models, picked **all-MiniLM-L6-v2**:
+- 384 dimensions
+- 80 MB size
+- Fast (1000 docs/sec)
+- Good quality for our dataset
 
-## Search Performance
-- **Speed**: <100ms for 19k papers
-- **Algorithm**: HNSW (Hierarchical Navigable Small World)
-- **Similarity**: L2 distance → `(2.0 - distance) / 2.0`
-- **Accuracy**: ~95% precision @ top-20
+## What We Built
+
+1. Generated embeddings for 19,523 papers (title + abstract)
+2. Indexed in ChromaDB with HNSW
+3. Search returns results in <100ms
+
+Output: `data/vector_db/` (263 MB)

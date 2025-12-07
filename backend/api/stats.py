@@ -108,3 +108,112 @@ async def get_treemap():
     except Exception as e:
         logger.error(f"Treemap failed: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/trends/{topic}")
+async def get_topic_trends(topic: str):
+    """
+    Get publication trends over time for a specific topic (Level 1)
+
+    Args:
+        topic: Topic name from treemap
+
+    Returns:
+        Trend data with years and paper counts
+    """
+    try:
+        state = get_app_state()
+        papers_df = state.get('papers_df')
+
+        if papers_df is None:
+            raise HTTPException(status_code=500, detail="Server not ready")
+
+        # Filter papers by topic in subject_areas
+        filtered_papers = papers_df[
+            papers_df['subject_areas'].apply(
+                lambda subjects: isinstance(subjects, list) and
+                any(topic.lower() in str(s).lower() for s in subjects)
+            )
+        ]
+
+        if len(filtered_papers) == 0:
+            return {"years": [], "counts": [], "total": 0}
+
+        # Group by year and count
+        trend_data = filtered_papers.groupby('year').size().reset_index(name='count')
+
+        return {
+            "years": trend_data['year'].tolist(),
+            "counts": trend_data['count'].tolist(),
+            "total": len(filtered_papers)
+        }
+
+    except Exception as e:
+        logger.error(f"Trends failed for topic {topic}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/level2-trends/{topic}")
+async def get_level2_trends(topic: str):
+    """
+    Get Level 2 trends: dual line chart (paper count + citations over time)
+
+    Args:
+        topic: Level 2 topic name (e.g., 'Analytical Chemistry')
+
+    Returns:
+        Time series data with years, paper counts, and citation counts
+    """
+    try:
+        state = get_app_state()
+        papers_df = state.get('papers_df')
+
+        if papers_df is None:
+            raise HTTPException(status_code=500, detail="Server not ready")
+
+        # Filter papers using same logic as categories endpoint
+        topic_lower = topic.lower()
+        matching_indices = []
+
+        for idx, paper_row in papers_df.iterrows():
+            subject_areas = paper_row.get('subject_areas', [])
+            if not hasattr(subject_areas, '__iter__') or isinstance(subject_areas, str):
+                continue
+
+            subject_list = list(subject_areas) if hasattr(subject_areas, '__iter__') else []
+
+            matches = False
+            for subject in subject_list:
+                subject_lower = str(subject).lower()
+                if topic_lower in subject_lower or subject_lower in topic_lower:
+                    matches = True
+                    break
+
+            if matches:
+                matching_indices.append(idx)
+
+        if len(matching_indices) == 0:
+            logger.warning(f"No papers found for topic: {topic}")
+            return {"years": [], "paper_counts": [], "citation_counts": [], "total": 0}
+
+        # Get filtered papers
+        filtered_papers = papers_df.loc[matching_indices]
+
+        # Group by year and aggregate
+        yearly_data = filtered_papers.groupby('year').agg({
+            'id': 'count',  # Paper count
+            'citation_count': 'sum'  # Total citations
+        }).reset_index()
+        yearly_data.columns = ['year', 'paper_count', 'citation_count']
+
+        logger.info(f"Level 2 trends for '{topic}': {len(filtered_papers)} total papers across {len(yearly_data)} years")
+
+        return {
+            "years": yearly_data['year'].tolist(),
+            "paper_counts": yearly_data['paper_count'].tolist(),
+            "citation_counts": yearly_data['citation_count'].tolist(),
+            "total": len(filtered_papers),
+            "avg_citations": float(filtered_papers['citation_count'].mean())
+        }
+
+    except Exception as e:
+        logger.error(f"Level 2 trends failed for topic {topic}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
