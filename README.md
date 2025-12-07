@@ -1,86 +1,97 @@
 # Research Paper Explorer
 
-Search and explore 19,523 academic papers from Scopus (2018-2023) using AI-powered semantic search.
+Platform for exploring 19,523 Scopus papers (2018-2023) with semantic search, interactive visualizations, and AI-powered insights.
 
-**Stack**: Next.js + FastAPI + ChromaDB + SentenceTransformers
+Next.js + FastAPI + ChromaDB + Claude AI
 
----
+## What It Does
 
-## Quick Start
+- Semantic search across papers (vector embeddings, not keyword matching)
+- Interactive treemap for browsing 7 research fields and 85 categories
+- AI-generated research suggestions (Claude API)
+- Time series analysis showing publication and citation trends
+- Filter by subject, year range, citations
 
+## Getting Started
+
+Backend:
 ```bash
-# Backend
 cd backend
 pip install -r requirements.txt
-uvicorn main:app --reload  # http://localhost:8000
+uvicorn main:app --reload
+# Runs on http://localhost:8000
+```
 
-# Frontend
+Frontend:
+```bash
 cd frontend
 pnpm install
-pnpm dev  # http://localhost:3000
+pnpm dev
+# Runs on http://localhost:3000
 ```
 
----
-
-## Structure
-
+Create `backend/.env` with your API key:
 ```
-data/processed/     # Papers, embeddings, vector DB
-backend/            # FastAPI server
-frontend/           # Next.js app
-part1_*/            # Data cleaning notebooks
-part2_*/            # Embedding generation
-part3_*/            # Trends analysis
+ANTHROPIC_API_KEY=your_key_here
 ```
 
----
-
-## Features
-
-- **Semantic Search**: Find papers by meaning, not just keywords
-- **Interactive Treemap**: Browse 7 research fields hierarchically
-- **Filters**: Subject areas, year range, citations
-- **AI Insights**: Claude-powered research suggestions (search page)
-
----
-
-## Pipeline
-
-1. **Data Prep**: 20K JSON files → 19,523 clean papers
-2. **Embeddings**: all-MiniLM-L6-v2 → 384-dim vectors → ChromaDB
-3. **Trends**: Time series analysis + AI insights generation
-
----
-
-## Tech
-
-- **Frontend**: Next.js 14, TailwindCSS, Plotly
-- **Backend**: FastAPI, ChromaDB, Pandas
-- **AI**: all-MiniLM-L6-v2, Claude (Anthropic)
-
----
-
-## API
+## Project Layout
 
 ```
-POST /api/search/          # Semantic search
-GET  /api/categories/{id}   # Filter by category
-GET  /api/stats/treemap     # Treemap data
+data/processed/
+  papers.parquet        # 19,523 papers (29 MB)
+  embeddings/           # 384-dim vectors (30 MB)
+  vector_db/            # ChromaDB index (263 MB)
+
+backend/
+  api/                  # REST endpoints
+  services/             # Data loading, vector search, LLM
+  main.py
+
+frontend/
+  app/                  # Browse + search pages
+  components/           # UI components
+
+part1_*/                # Data cleaning notebooks
+part2_*/                # Embedding generation
+part3_*/                # Trends analysis
+```
+
+## How It Works
+
+**Data Processing**  
+Raw Scopus JSON (20K files) → cleaned dataset (19,523 papers)
+
+**Embeddings**  
+Papers encoded with all-MiniLM-L6-v2 → 384-dim vectors → ChromaDB
+
+**Analysis**  
+Time series + AI insights using Claude
+
+## API Routes
+
+```
+POST /api/search/                      # Vector search
+GET  /api/categories/{category}        # Category filter
+GET  /api/stats/treemap                # Hierarchy data
 GET  /api/stats/level2-trends/{topic}  # Time series
-POST /api/insights/search   # AI analysis
+POST /api/insights/search              # AI analysis
 ```
 
----
-
-## Stats
+## Numbers
 
 - 19,523 papers (2018-2023)
-- 87K+ total citations
-- 7 major fields, 85 categories
-- <100ms search queries
+- 87K+ citations
+- 7 fields, 85 categories
+- <100ms query time
+- 384-dim embeddings
+
+## Stack
+
+Frontend: Next.js 14, TailwindCSS, Plotly  
+Backend: FastAPI, ChromaDB, Pandas  
+AI: SentenceTransformers, Claude API
 
 ---
 
----
-
-Data Science Project - Chulalongkorn University
+Chulalongkorn University Data Science Project
